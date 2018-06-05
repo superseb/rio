@@ -1,0 +1,105 @@
+#!/usr/bin/sh
+set -e
+
+[ -L lib64 ] || ln -sf lib lib64
+ln -sf usr/lib usr/bin usr/sbin .
+
+mkdir -p /proc
+mount -t proc -o nodev,nosuid,noexec,relatime none /proc
+
+mkdir -p /run
+mount --rbind /.root/run /run
+
+for i in cache empty lib local local log opt spool tmp; do
+    mkdir -p /var/$i
+done
+
+if [ -L /.root/var/run ]; then
+    ln -sf /run /var/run
+else
+    mkdir -p /var/run
+    mount --rbind /.root/var/run /var/run
+fi
+
+for i in dev home mnt media opt root lib/modules lib/firmware; do
+    if [ -d /.root/$i ]; then
+        mkdir -p /$i
+        mount --rbind /.root/$i /$i
+    fi
+done
+
+mkdir -p /sys
+mount -t sysfs none /sys
+
+#mkdir -p /host/etc
+#mount --rbind /.root/etc /host/etc
+
+mkdir -p /etc
+cp -rf usr/etc/* /etc/
+
+mkdir -p /tmp
+mount -t tmpfs none /tmp
+
+hostname > /etc/hostname
+if [ -f /host/etc/resolv.conf ]; then
+    ln -sf /host/etc/resolv.conf /etc/resolv.conf
+else
+    echo Failing back to 1.1.1.1 DNS 1>&2
+    rm -f /etc/resolv.conf
+    echo 'nameserver 1.1.1.1' > /etc/resolv.conf
+fi
+
+for i in $(cat /proc/mounts  | awk '{print $2}' | grep .root | sort -r); do
+    umount $i 2>/dev/null
+done
+
+rmdir .root
+
+mount -t securityfs -o noexec,nosuid,nodev none /sys/kernel/security 2>/dev/null|| true
+mount -t configfs -o noexec,nosuid,nodev none /sys/kernel/config 2>/dev/null || true
+mount -t fusectl -o noexec,nosuid,nodev none /sys/fs/fuse/connections 2>/dev/null || true
+mount -t binfmt_misc -o noexec,nosuid,nodev none /proc/sys/fs/binfmt_misc 2>/dev/null || true
+
+mount -t tmpfs -o mode=755,size=10m none /sys/fs/cgroup
+
+cat /proc/cgroups > /tmp/cgroups
+
+for i in $(seq 0 20); do
+    t=""
+    l="$(cat /tmp/cgroups | grep '1$' | awk '{print $1 " " $2}' | grep -w $i | awk '{print $1}')"
+    for j in $l; do
+        if [ -z "$t" ]; then
+            t=$j
+        else
+            t="${t},$j"
+        fi
+    done
+
+    if [ -z "$t" ]; then
+        continue
+    fi
+
+    mkdir -p /sys/fs/cgroup/${t}
+    mount -t cgroup -o ${t},noexec,nosuid,nodev none /sys/fs/cgroup/${t}
+    mkdir -p /sys/fs/cgroup/${t}/rio
+
+    for j in $l; do
+        if [ $j != $t ]; then
+            ln -s $t /sys/fs/cgroup/$j
+        fi
+    done
+done
+
+rm /tmp/cgroups
+
+#mount --make-shared /
+
+export NODE_NAME=$(hostname | cut -f1 -d.)
+
+if [ "$1" == "--" ]; then
+    shift 1
+    exec "$@"
+fi
+
+env -i -- HOME=/root PATH=/sbin:/bin containerd &
+exec env -i -- HOME=/root PATH=/sbin:/bin NODE_NAME=$NODE_NAME agent

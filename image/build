@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+sudo rm -rf root main.squashfs
+docker build -t bb .
+mkdir root
+docker export $(docker create bb) | sudo tar xvf - -C root
+mksquashfs root main.squashfs
