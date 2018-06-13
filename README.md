@@ -1,7 +1,7 @@
 rio
 ========
 
-## ***FILL THIS OUT WITH A USEFUL DESCRIPTION OF THIS REPO***
+## Rio is coming mid July.  Stay tuned for more info.
 
 ## Building
 
