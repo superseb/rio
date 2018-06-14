@@ -13,12 +13,13 @@ import (
 	"github.com/rancher/rio/cli/pkg/waiter"
 	"github.com/rancher/rio/cli/pkg/yamldownload"
 	"github.com/rancher/rio/cli/server"
+	"github.com/rancher/rio/types/client/rio/v1beta1"
 	"github.com/urfave/cli"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util/editor"
 )
 
 type Edit struct {
-	O_Output string `desc:"Output format (yaml|json)" default:"yaml"`
+	O_Output string `desc:"Output format to edit (yaml|json)" default:"yaml"`
 }
 
 func (edit *Edit) Run(app *cli.Context) error {
@@ -32,27 +33,30 @@ func (edit *Edit) Run(app *cli.Context) error {
 		return err
 	}
 
-	obj, body, url, err := yamldownload.DownloadYAML(ctx, format, "edit", app.Args())
-	if err != nil {
-		return err
-	}
-
-	e := editor.NewDefaultEditor(os.Environ())
-	content, _, err := e.LaunchTempFile("rio-", "-edit", body)
-	if err != nil {
-		return err
-	}
-
-	if err := update(ctx, url, content); err != nil {
-		return err
-	}
-
 	waiter, err := waiter.NewWaiter(app)
 	if err != nil {
 		return err
 	}
 
-	waiter.Add(obj.ID)
+	for _, arg := range app.Args() {
+		obj, body, url, err := yamldownload.DownloadYAML(ctx, format, "edit", arg, client.ServiceType)
+		if err != nil {
+			return err
+		}
+
+		e := editor.NewDefaultEditor(os.Environ())
+		content, _, err := e.LaunchTempFile("rio-", "-edit", body)
+		if err != nil {
+			return err
+		}
+
+		if err := update(ctx, url, content); err != nil {
+			return err
+		}
+
+		waiter.Add(obj.ID)
+	}
+
 	return waiter.Wait()
 }
 

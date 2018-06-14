@@ -1,17 +1,8 @@
 package server
 
-import (
-	"context"
-
-	"github.com/rancher/rio/pkg/server"
-	"github.com/urfave/cli"
-)
-
 type Server struct {
-	HttpsListenPort int `desc:"HTTPS listen port" default:"443"`
-	HttpListenPort  int `desc:"HTTP listen port" default:"80"`
-}
-
-func (s *Server) Run(app *cli.Context) error {
-	return server.StartServer(context.Background(), s.HttpListenPort, s.HttpsListenPort)
+	P_HttpsListenPort  int    `desc:"HTTPS listen port" default:"7443"`
+	L_HttpListenPort   int    `desc:"HTTP listen port" default:"7080"`
+	D_DataDir          string `desc:"Folder to hold state" default:"${HOME}/.rancher/rio/server"`
+	DisableControllers bool   `desc:"Don't run controllers (only useful for rio development)"`
 }

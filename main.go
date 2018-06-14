@@ -16,16 +16,7 @@ func main() {
 	}
 }
 
-//func runFlannel(config *AgentConfig) error {
-//	flannel.Main([]string{
-//		"--ip-masq",
-//		"--kubeconfig-file", config.KubeConfig,
-//	})
-//
-//	logrus.Fatalf("flannel exited")
-//	return nil
-//}
-
 func run() error {
-	return server.StartServer(context.Background(), 8080, 8443)
+	logrus.SetLevel(logrus.DebugLevel)
+	return server.StartServer(context.Background(), "./data-dir", 5080, 5443, true)
 }

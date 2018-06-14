@@ -1,11 +1,11 @@
 package v1beta1
 
 import (
+	"bytes"
 	"strconv"
 
-	"bytes"
-
 	"github.com/rancher/norman/types"
+	"k8s.io/api/apps/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -15,11 +15,20 @@ type Service struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	ServiceSpec `json:"spec"`
+	Spec   ServiceSpec   `json:"spec"`
+	Status ServiceStatus `json:"status"`
 }
 
-type ServiceSpec struct {
-	Scale       int    `json:"scale,omitempty"`
+type ServiceRevision struct {
+	Labels  map[string]string      `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
+	Spec    ServiceUnversionedSpec `json:"spec"`
+	Weight  int                    `json:"weight,omitempty"`
+	Promote bool                   `json:"promote,omitempty"`
+	Status  ServiceStatus          `json:"status,omitempty"`
+}
+
+type ServiceUnversionedSpec struct {
+	Scale       int    `json:"scale,omitempty" norman:"type=int,default=1"`
 	BatchSize   int    `json:"batchSize,omitempty"`
 	UpdateOrder string `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
 
@@ -31,21 +40,39 @@ type ServiceSpec struct {
 	ContainerConfig
 }
 
+type ServiceSpec struct {
+	ServiceUnversionedSpec
+	Revisions map[string]ServiceRevision `json:"revisions,omitempty"`
+}
+
+type ServiceStatus struct {
+	DeploymentStatus *v1beta2.DeploymentStatus `json:"deploymentStatus,omitempty"`
+	ScaleStatus      *ScaleStatus              `json:"scaleStatus,omitempty"`
+	Conditions       []Condition               `json:"conditions,omitempty"`
+}
+
+type ScaleStatus struct {
+	Ready       int `json:"ready,omitempty"`
+	Unavailable int `json:"unavailable,omitempty"`
+	Available   int `json:"available,omitempty"`
+	Updated     int `json:"updated,omitempty"`
+}
+
 type PodConfig struct {
 	Hostname string `json:"hostname,omitempty"`
 	//Metadata               map[string]interface{}   `json:"metadata,omitempty"`        //alias annotations
 	//StopSignal             string   `json:"stopSignal,omitempty" norman:"default=SIGTERM"`                                       // Signal to stop a container
-	StopGracePeriodSeconds *int   `json:"stopGracePeriod,omitempty"`                                                           // support friendly numbers
-	RestartPolicy          string `json:"restart,omitempty" norman:"type=enum,options=never|on-failure|always,default=always"` //support no and OnFailure
-	//DNS                    []string `json:"dns,omitempty"`                                                                       // support string
-	//DNSOptions             []string `json:"dnsOptions,omitempty"`                                                                // support string
-	//DNSSearch              []string `json:"dnsSearch,omitempty"`                                                                 // support string
-	ExtraHosts []string `json:"extraHosts,omitempty"` // support map
+	StopGracePeriodSeconds *int     `json:"stopGracePeriod,omitempty"`                                                           // support friendly numbers
+	RestartPolicy          string   `json:"restart,omitempty" norman:"type=enum,options=never|on-failure|always,default=always"` //support no and OnFailure
+	DNS                    []string `json:"dns,omitempty"`                                                                       // support string
+	DNSOptions             []string `json:"dnsOptions,omitempty"`                                                                // support string
+	DNSSearch              []string `json:"dnsSearch,omitempty"`                                                                 // support string
+	ExtraHosts             []string `json:"extraHosts,omitempty"`                                                                // support map
 }
 
 type PrivilegedConfig struct {
-	NetworkMode  string        `json:"net,json" norman:"type=enum,options=default|host,default=default"` // alias network, support bridge
-	PortBindings []PortBinding `json:"ports,omitempty"`                                                  // support []string
+	NetworkMode  string        `json:"net,omitempty" norman:"type=enum,options=default|host,default=default"` // alias network, support bridge
+	PortBindings []PortBinding `json:"ports,omitempty"`                                                       // support []string
 	IpcMode      string        `json:"ipc,omitempty" norman:"type=enum,options=default|host,default=default"`
 	PidMode      string        `json:"pid,omitempty" norman:"type=enum,options=default|host,default=default"`
 }
@@ -76,7 +103,7 @@ func (p PortBinding) String() string {
 		b.WriteString(strconv.FormatInt(p.TargetPort, 10))
 	}
 
-	if b.Len() > 0 && p.Protocol != "" {
+	if b.Len() > 0 && p.Protocol != "" && p.Protocol != "tcp" {
 		b.WriteString("/")
 		b.WriteString(p.Protocol)
 	}
@@ -136,9 +163,9 @@ type HealthConfig struct {
 
 // DeviceMapping represents the device mapping between the host and the container.
 type DeviceMapping struct {
-	OnHost      string `json:"onHost"`
-	InContainer string `json:"inContainer"`
-	Permissions string `json:"permissions"`
+	OnHost      string `json:"onHost,omitempty"`
+	InContainer string `json:"inContainer,omitempty"`
+	Permissions string `json:"permissions,omitempty"`
 }
 
 func (d DeviceMapping) String() string {

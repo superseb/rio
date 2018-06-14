@@ -11,7 +11,7 @@ func NewDeviceMapping(field string) ObjectsToSlice {
 	return ObjectsToSlice{
 		Field: field,
 		NewObject: func() fmt.Stringer {
-			return v1beta1.DeviceMapping{}
+			return &v1beta1.DeviceMapping{}
 		},
 		ToObjects: func(str []string) ([]interface{}, error) {
 			var result []interface{}

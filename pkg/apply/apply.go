@@ -2,16 +2,34 @@ package apply
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strconv"
+	"strings"
+
+	"encoding/json"
 
 	"github.com/pkg/errors"
+	"github.com/runconduit/conduit/cli/cmd"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+func ApplyContent(content []byte) error {
+	errOutput := &bytes.Buffer{}
+	cmd := exec.Command("kubectl", "apply", "-f", "-")
+	cmd.Stdin = bytes.NewReader(content)
+	cmd.Stdout = nil
+	cmd.Stderr = errOutput
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrapf(err, "failed to apply: %s", errOutput.String())
+	}
+
+	return nil
+}
 
 func Apply(objects []runtime.Object, groupID string, generation int64) error {
 	if len(objects) == 0 {
@@ -23,13 +41,28 @@ func Apply(objects []runtime.Object, groupID string, generation int64) error {
 		return err
 	}
 
+	content, err = injectConduit(content)
+	if err != nil {
+		return err
+	}
+
 	return execApply(ns, whitelist, content, groupID)
+}
+
+func injectConduit(content []byte) ([]byte, error) {
+	inBuf := bytes.NewBuffer(content)
+	outBuf := &bytes.Buffer{}
+	err := cmd.InjectYAML(inBuf, outBuf, "v0.4.1")
+	if err != nil {
+		return nil, err
+	}
+	return outBuf.Bytes(), nil
 }
 
 func execApply(ns string, whitelist map[string]bool, content []byte, groupID string) error {
 	output := &bytes.Buffer{}
 	errOutput := &bytes.Buffer{}
-	cmd := exec.Command("kubectl", "-n", ns, "apply", "--prune", "-l", "apply.cattle.io/groupID="+groupID, "-o", "json", "-f", "-")
+	cmd := exec.Command("kubectl", "-n", ns, "apply", "--force", "--grace-period", "120", "--prune", "-l", "apply.cattle.io/groupID="+groupID, "-o", "json", "-f", "-")
 	for group := range whitelist {
 		cmd.Args = append(cmd.Args, "--prune-whitelist="+group)
 	}
@@ -38,10 +71,12 @@ func execApply(ns string, whitelist map[string]bool, content []byte, groupID str
 	cmd.Stderr = errOutput
 
 	if err := cmd.Run(); err != nil {
-		return errors.Wrapf(err, "failed to apply: %s", errOutput.String())
+		return errors.Wrapf(err, "failed to apply: %s, input: %s", errOutput.String(), string(content))
 	}
 
-	fmt.Println("Applied", output.String())
+	if logrus.GetLevel() <= logrus.DebugLevel {
+		fmt.Printf("Applied: %s", output.String())
+	}
 	return nil
 }
 
@@ -72,10 +107,15 @@ func constructApplyData(objects []runtime.Object, groupID string, generation int
 			ns = metaObj.GetNamespace()
 		}
 
-		whitelist[fmt.Sprintf("%s/%s", objType.GetAPIVersion(), objType.GetKind())] = true
+		gvk := fmt.Sprintf("%s/%s", objType.GetAPIVersion(), objType.GetKind())
+		if len(strings.Split(gvk, "/")) < 3 {
+			gvk = "/" + gvk
+		}
+		whitelist[gvk] = true
 		if err := encoder.Encode(obj); err != nil {
 			return "", nil, nil, errors.Wrapf(err, "failed to encode %s/%s/%s/%s", objType.GetAPIVersion(), objType.GetKind(), metaObj.GetNamespace(), metaObj.GetName())
 		}
+		buffer.WriteString("\n---\n")
 	}
 
 	return ns, whitelist, buffer.Bytes(), nil

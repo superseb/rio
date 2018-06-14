@@ -5,6 +5,7 @@ import (
 
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/sirupsen/logrus"
 )
 
 type NewObject func() fmt.Stringer
@@ -30,6 +31,7 @@ func (p ObjectsToSlice) FromInternal(data map[string]interface{}) {
 	for _, obj := range convert.ToMapSlice(objs) {
 		target := p.NewObject()
 		if err := convert.ToObj(obj, target); err != nil {
+			logrus.Errorf("Failed to unmarshal slice to object: %v", err)
 			continue
 		}
 

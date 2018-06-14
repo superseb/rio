@@ -36,6 +36,43 @@ var (
 			AliasField{Field: "healthyThreshold", Names: []string{"retries", "successThreshold"}},
 			AliasField{Field: "unhealthyThreshold", Names: []string{"failureThreshold"}},
 		).
+		AddMapperForType(&Version, client.ServiceRevision{},
+			SingleSlice{Field: "capAdd"},
+			SingleSlice{Field: "capDrop"},
+			SingleSlice{Field: "dns"},
+			SingleSlice{Field: "dnsOption"},
+			SingleSlice{Field: "dnsSearch"},
+			Shlex{Field: "command"},
+			NewDeviceMapping("devices"),
+			MapToSlice{Field: "devices", Sep: ":"},
+			AliasField{Field: "environment", Names: []string{"env"}},
+			MapToSlice{Field: "environment", Sep: "="},
+			MapToSlice{Field: "extraHosts", Sep: ":"},
+			&mapper.Embed{Field: "healthcheck"},
+			mapper.Move{From: "memoryBytes", To: "memory"},
+			Bytes{"memory"},
+			mapper.Move{From: "memoryReservationBytes", To: "memoryReservation"},
+			Bytes{"memoryReservation"},
+			mapper.Move{From: "nanoCpus", To: "cpus"},
+			AliasField{Field: "net", Names: []string{"network"}},
+			AliasValue{Field: "net", Alias: map[string][]string{
+				"default": {"bridge"}},
+			},
+			NewPortBinding("ports"),
+			AliasValue{Field: "restart", Alias: map[string][]string{
+				"never":      {"no"},
+				"on-failure": {"OnFailure"}},
+			},
+			AliasField{Field: "stdinOpen", Names: []string{"interactive"}},
+			Duration{Field: "stopGracePeriod"},
+			NewTmpfs("tmpfs"),
+			SingleSlice{Field: "tmpfs"},
+			SingleSlice{Field: "volumesFrom"},
+			NewMounts("volumes"),
+			SingleSlice{Field: "volumes"},
+			mapper.Drop{Field: "spaceId"},
+			mapper.Drop{Field: "stackId"},
+		).
 		AddMapperForType(&Version, client.Service{},
 			SingleSlice{Field: "capAdd"},
 			SingleSlice{Field: "capDrop"},
@@ -108,6 +145,27 @@ func (s *ExportFormatter) Format(request *types.APIContext, resource *types.RawR
 	stack := map[string]interface{}{}
 	s.addServices(request, resource, stack)
 
+	Schemas.Schema(&Version, client.StackType).Mapper.FromInternal(stack)
+
+	*resource = types.RawResource{
+		Schema:       resource.Schema,
+		DropReadOnly: true,
+		Values:       stack,
+	}
+}
+
+func (s *ExportFormatter) FormatService(request *types.APIContext, resource *types.RawResource) {
+	if request.Option("export") != "true" {
+		return
+	}
+
+	stack := map[string]interface{}{
+		"services": map[string]interface{}{
+			resource.Values["name"].(string): resource.Values,
+		},
+	}
+	s.addServices(request, resource, stack)
+	delete(resource.Values, "name")
 	Schemas.Schema(&Version, client.StackType).Mapper.FromInternal(stack)
 
 	*resource = types.RawResource{

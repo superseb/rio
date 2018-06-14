@@ -11,7 +11,7 @@ func NewMounts(field string) ObjectsToSlice {
 	return ObjectsToSlice{
 		Field: field,
 		NewObject: func() fmt.Stringer {
-			return v1beta1.Mount{}
+			return &v1beta1.Mount{}
 		},
 		ToObjects: func(str []string) ([]interface{}, error) {
 			var result []interface{}

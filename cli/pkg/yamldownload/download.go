@@ -7,18 +7,12 @@ import (
 	"net/url"
 
 	"github.com/rancher/norman/types"
-	"github.com/rancher/rio/cli/pkg/idname"
-	"github.com/rancher/rio/cli/pkg/waiter"
+	"github.com/rancher/rio/cli/pkg/lookup"
 	"github.com/rancher/rio/cli/server"
 )
 
-func DownloadYAML(ctx *server.Context, contentType, option string, args []string) (*types.Resource, io.ReadCloser, string, error) {
-	name, types, err := idname.LookupArgs(args)
-	if err != nil {
-		return nil, nil, "", err
-	}
-
-	obj, err := waiter.Lookup(ctx.Client, name, types...)
+func DownloadYAML(ctx *server.Context, contentType, option string, name string, resourceTypes ...string) (*types.Resource, io.ReadCloser, string, error) {
+	obj, err := lookup.Lookup(ctx.Client, name, resourceTypes...)
 	if err != nil {
 		return nil, nil, "", err
 	}

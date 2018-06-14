@@ -31,11 +31,16 @@ done
 mkdir -p /sys
 mount -t sysfs none /sys
 
-#mkdir -p /host/etc
-#mount --rbind /.root/etc /host/etc
+mkdir -p /host/etc
+mount --rbind /.root/etc /host/etc
 
 mkdir -p /etc
 cp -rf usr/etc/* /etc/
+for i in  /host/usr/lib/os-release /host/etc/os-release; do
+    if [ -e $i ]; then
+        cp -f $i /etc/os-release
+    fi
+done
 
 mkdir -p /tmp
 mount -t tmpfs none /tmp
@@ -44,9 +49,13 @@ hostname > /etc/hostname
 if [ -f /host/etc/resolv.conf ]; then
     ln -sf /host/etc/resolv.conf /etc/resolv.conf
 else
-    echo Failing back to 1.1.1.1 DNS 1>&2
+    echo Failing back to 8.8.8.8 DNS 1>&2
     rm -f /etc/resolv.conf
-    echo 'nameserver 1.1.1.1' > /etc/resolv.conf
+    echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+fi
+
+if [ -e /host/etc/machine-id ]; then
+    ln -sf /host/etc/machine-id /etc/machine-id
 fi
 
 for i in $(cat /proc/mounts  | awk '{print $2}' | grep .root | sort -r); do
@@ -81,7 +90,7 @@ for i in $(seq 0 20); do
 
     mkdir -p /sys/fs/cgroup/${t}
     mount -t cgroup -o ${t},noexec,nosuid,nodev none /sys/fs/cgroup/${t}
-    mkdir -p /sys/fs/cgroup/${t}/rio
+    mkdir -p /sys/fs/cgroup/${t}/k3s
 
     for j in $l; do
         if [ $j != $t ]; then
@@ -92,7 +101,7 @@ done
 
 rm /tmp/cgroups
 
-#mount --make-shared /
+mount --make-shared /
 
 export NODE_NAME=$(hostname | cut -f1 -d.)
 
@@ -101,5 +110,10 @@ if [ "$1" == "--" ]; then
     exec "$@"
 fi
 
-env -i -- HOME=/root PATH=/sbin:/bin containerd &
-exec env -i -- HOME=/root PATH=/sbin:/bin NODE_NAME=$NODE_NAME agent
+mkdir -p /run/rio/containerd
+
+# Cleanup networking since there seems to be a bug
+rm -rf /var/lib/cni/networks/cbr0/10.42* 2>/dev/null || true
+
+env -i -- HOME=/root PATH=/sbin:/bin containerd -a /run/rio/containerd.sock --state /run/rio/containerd &
+exec env -i -- HOME=/root PATH=/sbin:/bin NODE_NAME=$NODE_NAME RIO_URL=$RIO_URL RIO_TOKEN=$RIO_TOKEN RIO_DATA_DIR=$RIO_DATA_DIR agent

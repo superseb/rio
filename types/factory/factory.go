@@ -15,18 +15,6 @@ func Schemas(version *types.APIVersion) *types.Schemas {
 		mappers := append([]types.Mapper{
 			&rm.StackScoped{},
 			&mapper.Status{},
-			&m.Embed{
-				Field:    "status",
-				Optional: true,
-			},
-			m.Drop{
-				Field:            "conditions",
-				IgnoreDefinition: true,
-			},
-			m.Drop{
-				Field:            "ownerReferences",
-				IgnoreDefinition: true,
-			},
 		}, baseFunc()...)
 		return mappers
 	}
@@ -34,10 +22,32 @@ func Schemas(version *types.APIVersion) *types.Schemas {
 	basePostFunc := schemas.DefaultPostMappers
 	schemas.DefaultPostMappers = func() []types.Mapper {
 		mappers := append(basePostFunc(),
-			m.Drop{
-				Field:            "annotations",
-				IgnoreDefinition: true,
-			})
+			&m.Root{
+				Mapper: types.Mappers{
+					&m.ReadOnly{
+						Field:     "status",
+						Optional:  true,
+						SubFields: true,
+					},
+					&m.Embed{
+						Field:    "status",
+						Optional: true,
+					},
+					m.Drop{
+						Field:            "conditions",
+						IgnoreDefinition: true,
+					},
+					m.Drop{
+						Field:            "ownerReferences",
+						IgnoreDefinition: true,
+					},
+					m.Drop{
+						Field:            "annotations",
+						IgnoreDefinition: true,
+					},
+				},
+			},
+		)
 		return mappers
 	}
 	return schemas

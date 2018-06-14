@@ -3,6 +3,8 @@ package config
 import (
 	"context"
 
+	"github.com/rancher/norman/api/builtin"
+	"github.com/rancher/norman/pkg/subscribe"
 	"github.com/rancher/norman/store/crd"
 	"github.com/rancher/norman/store/proxy"
 	normantypes "github.com/rancher/norman/types"
@@ -28,14 +30,22 @@ func SetupTypes(ctx context.Context, context *types.Context) error {
 	factory.BatchWait()
 
 	setupSpaces(ctx, factory.ClientGetter, context)
+	setupNodes(ctx, factory.ClientGetter, context)
+	setupPods(ctx, factory.ClientGetter, context)
 	setupServices(ctx, context)
 	setupStacks(ctx, context)
+
+	subscribe.Register(&builtin.Version, context.Schemas)
+	subscribe.Register(&schema.Version, context.Schemas)
+	subscribe.Register(&spaceSchema.Version, context.Schemas)
 
 	return nil
 }
 
 func setupServices(ctx context.Context, rContext *types.Context) {
+	ef := &stack.ExportFormatter{}
 	s := rContext.Schemas.Schema(&schema.Version, client.ServiceType)
+	s.Formatter = ef.FormatService
 	s.Store = named.New(s.Store)
 }
 
@@ -43,6 +53,31 @@ func setupStacks(ctx context.Context, rContext *types.Context) {
 	ef := &stack.ExportFormatter{}
 	s := rContext.Schemas.Schema(&schema.Version, client.StackType)
 	s.Formatter = ef.Format
+	s.Store = named.New(s.Store)
+}
+
+func setupNodes(ctx context.Context, clientGetter proxy.ClientGetter, rContext *types.Context) {
+	s := rContext.Schemas.Schema(&spaceSchema.Version, spaceClient.NodeType)
+	s.Store = proxy.NewProxyStore(ctx,
+		clientGetter,
+		normantypes.DefaultStorageContext,
+		[]string{"/api"},
+		"",
+		"v1",
+		"Node",
+		"nodes")
+}
+
+func setupPods(ctx context.Context, clientGetter proxy.ClientGetter, rContext *types.Context) {
+	s := rContext.Schemas.Schema(&spaceSchema.Version, spaceClient.PodType)
+	s.Store = proxy.NewProxyStore(ctx,
+		clientGetter,
+		normantypes.DefaultStorageContext,
+		[]string{"/api"},
+		"",
+		"v1",
+		"Pod",
+		"pods")
 }
 
 func setupSpaces(ctx context.Context, clientGetter proxy.ClientGetter, rContext *types.Context) {

@@ -11,15 +11,15 @@ import (
 )
 
 type Create struct {
-	AddHost []string `desc:"Add a custom host-to-IP mapping (host:ip)"`
-	CapAdd  []string `desc:"Add Linux capabilities"`
-	CapDrop []string `desc:"Drop Linux capabilities"`
-	Cidfile string   `desc:"Write the container ID to the file"`
-	Cpus    string   `desc:"Number of CPUs"`
-	Device  []string `desc:"Add a host device to the container"`
-	//Dns                  []string          `desc:"Set custom DNS servers"`
-	//DnsOption            []string          `desc:"Set DNS options"`
-	//DnsSearch            []string          `desc:"Set custom DNS search domains"`
+	AddHost              []string          `desc:"Add a custom host-to-IP mapping (host:ip)"`
+	CapAdd               []string          `desc:"Add Linux capabilities"`
+	CapDrop              []string          `desc:"Drop Linux capabilities"`
+	Cidfile              string            `desc:"Write the container ID to the file"`
+	Cpus                 string            `desc:"Number of CPUs"`
+	Device               []string          `desc:"Add a host device to the container"`
+	Dns                  []string          `desc:"Set custom DNS servers"`
+	DnsOption            []string          `desc:"Set DNS options"`
+	DnsSearch            []string          `desc:"Set custom DNS search domains"`
 	Entrypoint           []string          `desc:"Overwrite the default ENTRYPOINT of the image"`
 	E_Env                []string          `desc:"Set environment variables"`
 	EnvFile              []string          `desc:"Read in a file of environment variables"`
@@ -38,7 +38,7 @@ type Create struct {
 	LabelFile            []string          `desc:"Read in a line delimited file of labels"`
 	M_Memory             string            `desc:"Memory limit (format: <number>[<unit>], where unit = b, k, m or g)"`
 	MemoryReservation    string            `desc:"Memory soft limit (format: <number>[<unit>], where unit = b, k, m or g)"`
-	Name                 string            `desc:"Assign a name to the container"`
+	N_Name               string            `desc:"Assign a name to the container"`
 	Net_Network          string            `desc:"Connect a container to a network" default:"default"`
 	NoHealthcheck        bool              `desc:"Disable any container-specified HEALTHCHECK"`
 	Pid                  string            `desc:"PID namespace to use"`
@@ -59,9 +59,15 @@ type Create struct {
 }
 
 func (c *Create) Run(app *cli.Context) error {
+	return c.RunCallback(app, func(s *client.Service) *client.Service {
+		return s
+	})
+}
+
+func (c *Create) RunCallback(app *cli.Context, cb func(service *client.Service) *client.Service) error {
 	var err error
 
-	service, err := c.toService(app.Args())
+	service, err := c.ToService(app.Args())
 	if err != nil {
 		return err
 	}
@@ -76,6 +82,8 @@ func (c *Create) Run(app *cli.Context) error {
 		return err
 	}
 
+	service = cb(service)
+
 	s, err := ctx.Client.Service.Create(service)
 	if err != nil {
 		return err
@@ -84,7 +92,7 @@ func (c *Create) Run(app *cli.Context) error {
 	return waiter.WaitFor(app, s.ID)
 }
 
-func (c *Create) toService(args []string) (*client.Service, error) {
+func (c *Create) ToService(args []string) (*client.Service, error) {
 	var (
 		err error
 	)
@@ -100,22 +108,22 @@ func (c *Create) toService(args []string) (*client.Service, error) {
 		Command:             args[1:],
 		CPUs:                c.Cpus,
 		DefaultVolumeDriver: c.VolumeDriver,
-		//DNS:                 c.Dns,
-		//DNSOptions:          c.DnsOption,
-		//DNSSearch:           c.DnsSearch,
-		Entrypoint:     c.Entrypoint,
-		Hostname:       c.Hostname,
-		Init:           c.Init,
-		Image:          args[0],
-		OpenStdin:      c.I_Interactive,
-		IpcMode:        c.Ipc,
-		Labels:         c.L_Label,
-		Name:           c.Name,
-		NetworkMode:    c.Net_Network,
-		PidMode:        c.Pid,
-		Privileged:     c.Privileged,
-		ReadonlyRootfs: c.ReadOnly,
-		RestartPolicy:  c.Restart,
+		DNS:                 c.Dns,
+		DNSOptions:          c.DnsOption,
+		DNSSearch:           c.DnsSearch,
+		Entrypoint:          c.Entrypoint,
+		Hostname:            c.Hostname,
+		Init:                c.Init,
+		Image:               args[0],
+		OpenStdin:           c.I_Interactive,
+		IpcMode:             c.Ipc,
+		Labels:              c.L_Label,
+		Name:                c.N_Name,
+		NetworkMode:         c.Net_Network,
+		PidMode:             c.Pid,
+		Privileged:          c.Privileged,
+		ReadonlyRootfs:      c.ReadOnly,
+		RestartPolicy:       c.Restart,
 		//StopSignal:          c.StopSignal,
 		Tty:         c.T_Tty,
 		User:        c.U_User,

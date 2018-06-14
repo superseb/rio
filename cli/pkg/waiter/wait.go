@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rancher/norman/clientbase"
+	"github.com/rancher/rio/cli/pkg/lookup"
 	"github.com/rancher/rio/cli/pkg/monitor"
 	"github.com/rancher/rio/cli/server"
 	"github.com/rancher/rio/types/client/rio/v1beta1"
@@ -116,6 +118,9 @@ func (w *Waiter) done(resourceType, id string) (bool, error) {
 	}
 
 	if err := w.client.ByID(resourceType, id, &data); err != nil {
+		if clientbase.IsNotFound(err) {
+			return true, nil
+		}
 		return false, err
 	}
 
@@ -152,7 +157,7 @@ func (w *Waiter) Wait() error {
 	go func() { logrus.Fatal(w.monitor.Start()) }()
 
 	for _, resource := range w.resources {
-		r, err := Lookup(w.client, resource, waitTypes...)
+		r, err := lookup.Lookup(w.client, resource, waitTypes...)
 		if err != nil {
 			return err
 		}

@@ -34,8 +34,8 @@ RUN curl -fL -o /usr/src/containerd.tgz https://github.com/containerd/containerd
 RUN tar xvf /usr/src/containerd.tgz -C /usr/src/image/bin bin/containerd bin/containerd-shim --strip-components=1
 
 RUN curl -fL -o /usr/src/cni.tgz https://github.com/containernetworking/plugins/releases/download/v0.7.1/cni-plugins-amd64-v0.7.1.tgz
-RUN mkdir /usr/src/image/cni
-RUN tar xvf /usr/src/cni.tgz -C /usr/src/image/cni ./bridge ./flannel ./host-local ./loopback ./portmap
+RUN mkdir -p /usr/src/image/share/cni/bin
+RUN tar xvf /usr/src/cni.tgz -C /usr/src/image/share/cni/bin ./bridge ./flannel ./host-local ./loopback ./portmap
 
 RUN mkdir -p /usr/src/image/etc/containerd
 COPY config.toml /usr/src/image/etc/containerd/config.toml

@@ -5,6 +5,7 @@ import (
 	"github.com/rancher/norman/types/mapper"
 	"github.com/rancher/rio/types/apis/space.cattle.io/v1beta1"
 	"github.com/rancher/rio/types/factory"
+	typemapper "github.com/rancher/types/mapper"
 	"k8s.io/api/core/v1"
 )
 
@@ -17,8 +18,28 @@ var (
 
 	Schemas = factory.Schemas(&Version).
 		MustImport(&Version, v1beta1.ListenConfig{}).
+		MustImport(&Version, v1.Node{}).
+		Init(podTypes).
 		Init(spaceTypes)
 )
+
+func podTypes(schemas *types.Schemas) *types.Schemas {
+	return schemas.
+		AddMapperForType(&Version, v1.PodTemplateSpec{},
+			&mapper.Embed{Field: "spec"},
+		).
+		AddMapperForType(&Version, v1.Pod{},
+			typemapper.ContainerStatus{},
+		).
+		MustImport(&Version, v1.Container{}, struct {
+			State                string
+			Transitioning        string
+			TransitioningMessage string
+			RestartCount         int
+			ExitCode             *int
+		}{}).
+		MustImport(&Version, v1.Pod{})
+}
 
 func spaceTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.
@@ -26,10 +47,12 @@ func spaceTypes(schemas *types.Schemas) *types.Schemas {
 		AddMapperForType(&Version, v1.NamespaceSpec{},
 			mapper.Drop{Field: "finalizers"},
 		).
+		AddMapperForType(&Version, v1.NamespaceStatus{},
+			mapper.Drop{Field: "phase"},
+		).
 		AddMapperForType(&Version, v1.Namespace{},
 			mapper.LabelField{Field: "displayName"},
 			mapper.DisplayName{},
-			mapper.Drop{Field: "phase"},
 			mapper.Access{Fields: map[string]string{
 				"id":   "r",
 				"name": "cr",

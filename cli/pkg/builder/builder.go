@@ -7,6 +7,8 @@ import (
 
 	"unsafe"
 
+	"strconv"
+
 	"github.com/urfave/cli"
 )
 
@@ -16,6 +18,36 @@ var (
 
 type runnable interface {
 	Run(app *cli.Context) error
+}
+
+type customizer interface {
+	Customize(cmd *cli.Command)
+}
+
+type fieldInfo struct {
+	FieldType  reflect.StructField
+	FieldValue reflect.Value
+}
+
+func fields(obj interface{}) []fieldInfo {
+	ptrValue := reflect.ValueOf(obj)
+	objValue := ptrValue.Elem()
+
+	var result []fieldInfo
+
+	for i := 0; i < objValue.NumField(); i++ {
+		fieldType := objValue.Type().Field(i)
+		if fieldType.Anonymous && fieldType.Type.Kind() == reflect.Struct {
+			result = append(result, fields(objValue.Field(i).Addr().Interface())...)
+		} else if !fieldType.Anonymous {
+			result = append(result, fieldInfo{
+				FieldValue: objValue.Field(i),
+				FieldType:  objValue.Type().Field(i),
+			})
+		}
+	}
+
+	return result
 }
 
 func Command(obj interface{}, usage, usageText, description string) cli.Command {
@@ -31,16 +63,26 @@ func Command(obj interface{}, usage, usageText, description string) cli.Command 
 		Description: description,
 	}
 
-	for i := 0; i < objValue.NumField(); i++ {
+	for _, info := range fields(obj) {
 		defMessage := ""
-		fieldType := objValue.Type().Field(i)
+		fieldType := info.FieldType
+		v := info.FieldValue
 
 		switch fieldType.Type.Kind() {
 		case reflect.Int:
 			flag := cli.IntFlag{
 				Name:        name(fieldType.Name),
 				Usage:       fieldType.Tag.Get("desc"),
-				Destination: (*int)(unsafe.Pointer(objValue.Field(i).Addr().Pointer())),
+				EnvVar:      fieldType.Tag.Get("env"),
+				Destination: (*int)(unsafe.Pointer(v.Addr().Pointer())),
+			}
+			defValue := fieldType.Tag.Get("default")
+			if defValue != "" {
+				n, err := strconv.Atoi(defValue)
+				if err != nil {
+					panic("bad default " + defValue + " on field " + fieldType.Name)
+				}
+				flag.Value = n
 			}
 			c.Flags = append(c.Flags, flag)
 		case reflect.String:
@@ -48,29 +90,32 @@ func Command(obj interface{}, usage, usageText, description string) cli.Command 
 				Name:        name(fieldType.Name),
 				Usage:       fieldType.Tag.Get("desc"),
 				Value:       fieldType.Tag.Get("default"),
-				Destination: (*string)(unsafe.Pointer(objValue.Field(i).Addr().Pointer())),
+				EnvVar:      fieldType.Tag.Get("env"),
+				Destination: (*string)(unsafe.Pointer(v.Addr().Pointer())),
 			}
 			c.Flags = append(c.Flags, flag)
 		case reflect.Slice:
-			slices[name(fieldType.Name)] = objValue.Field(i)
+			slices[name(fieldType.Name)] = v
 			defMessage = " (default: [])"
 			fallthrough
 		case reflect.Map:
 			if defMessage == "" {
-				maps[name(fieldType.Name)] = objValue.Field(i)
+				maps[name(fieldType.Name)] = v
 				defMessage = " (default: map[])"
 			}
 			flag := cli.StringSliceFlag{
-				Name:  name(fieldType.Name),
-				Usage: fieldType.Tag.Get("desc") + defMessage,
-				Value: &cli.StringSlice{},
+				Name:   name(fieldType.Name),
+				Usage:  fieldType.Tag.Get("desc") + defMessage,
+				EnvVar: fieldType.Tag.Get("env"),
+				Value:  &cli.StringSlice{},
 			}
 			c.Flags = append(c.Flags, flag)
 		case reflect.Bool:
 			flag := cli.BoolFlag{
 				Name:        name(fieldType.Name),
 				Usage:       fieldType.Tag.Get("desc"),
-				Destination: (*bool)(unsafe.Pointer(objValue.Field(i).Addr().Pointer())),
+				EnvVar:      fieldType.Tag.Get("env"),
+				Destination: (*bool)(unsafe.Pointer(v.Addr().Pointer())),
 			}
 			c.Flags = append(c.Flags, flag)
 		default:
@@ -85,6 +130,11 @@ func Command(obj interface{}, usage, usageText, description string) cli.Command 
 			assignMaps(app, maps)
 			return run.Run(app)
 		}
+	}
+
+	cust, ok := obj.(customizer)
+	if ok {
+		cust.Customize(&c)
 	}
 
 	return c

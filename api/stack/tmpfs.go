@@ -11,7 +11,7 @@ func NewTmpfs(field string) ObjectsToSlice {
 	return ObjectsToSlice{
 		Field: field,
 		NewObject: func() fmt.Stringer {
-			return v1beta1.Tmpfs{}
+			return &v1beta1.Tmpfs{}
 		},
 		ToObjects: func(str []string) ([]interface{}, error) {
 			var result []interface{}

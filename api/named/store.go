@@ -41,7 +41,9 @@ func (s *Store) Create(apiContext *types.APIContext, schema *types.Schema, data 
 	}
 
 	for i := 0; i < 3; i++ {
-		name = strings.Replace(namesgenerator.GetRandomName(i), "_", "-", -1)
+		if gen {
+			name = strings.Replace(namesgenerator.GetRandomName(i), "_", "-", -1)
+		}
 		err = access.List(apiContext, &schema.Version, schema.ID, &types.QueryOptions{
 			Conditions: []*types.QueryCondition{
 				types.EQ("name", name),

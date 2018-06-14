@@ -22,7 +22,8 @@ type Stack struct {
 }
 
 type StackSpec struct {
-	Templates map[string]string `json:"templates"`
+	Description string            `json:"description"`
+	Templates   map[string]string `json:"templates"`
 }
 
 type StackStatus struct {
@@ -30,8 +31,8 @@ type StackStatus struct {
 }
 
 type StackScoped struct {
-	StackName string `json:"stackName" norman:"type=reference[stack],required"`
-	SpaceName string `json:"spaceName" norman:"type=reference[/v1beta1-rio/schemas/space]"`
+	StackName string `json:"stackName,omitempty" norman:"type=reference[stack],required"`
+	SpaceName string `json:"spaceName,omitempty" norman:"type=reference[/v1beta1-rio/schemas/space]"`
 }
 
 type InternalStack struct {

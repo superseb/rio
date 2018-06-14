@@ -1,14 +1,14 @@
 package stackdeploy
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
 
-	"fmt"
-
 	"github.com/pkg/errors"
-	"github.com/rancher/rio/cli2/pkg/kv"
+	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/rio/cli/pkg/kv"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/apps/v1beta2"
@@ -28,46 +28,102 @@ func (s *stackDeployController) services(objects []runtime.Object, namespace str
 	}
 
 	for _, service := range services {
-		objects, err = s.service(objects, service)
+		objects, err = s.service(objects, service.Name, namespace, service)
 		if err != nil {
 			return objects, errors.Wrapf(err, "failed to construct service for %s/%s", service.Namespace, service.Name)
 		}
-
 	}
 
 	return objects, nil
 }
 
-func (s *stackDeployController) service(objects []runtime.Object, service *v1beta1.Service) ([]runtime.Object, error) {
-	labels := map[string]string{
-		"service.cattle.io": service.Name,
+func addScale(objects []runtime.Object, name, serviceName, namespace string, dep *v1beta2.Deployment, service *v1beta1.ServiceUnversionedSpec) []runtime.Object {
+	scale := int32(service.Scale)
+	batchSize := service.BatchSize
+
+	if batchSize == 0 {
+		batchSize = 1
 	}
 
-	scale := int32(service.Scale)
-	surge := service.BatchSize
+	if int32(batchSize) > scale {
+		batchSize = int(scale)
+	}
+
+	surge := batchSize
 	unavailable := 0
 
 	if service.UpdateOrder == "start-first" {
-		surge = service.BatchSize
+		surge = batchSize
 		unavailable = 0
 	} else if service.UpdateOrder == "stop-first" {
 		surge = 0
-		unavailable = service.BatchSize
+		unavailable = batchSize
 	}
 
 	maxSurge := intstr.FromInt(surge)
 	maxUnavailable := intstr.FromInt(unavailable)
 
-	dep := &v1beta2.Deployment{
+	dep.Spec.Replicas = &scale
+
+	if scale > 0 && batchSize > 0 {
+		dep.Spec.Strategy = v1beta2.DeploymentStrategy{
+			RollingUpdate: &v1beta2.RollingUpdateDeployment{
+				MaxSurge:       &maxSurge,
+				MaxUnavailable: &maxUnavailable,
+			},
+			Type: v1beta2.RollingUpdateDeploymentStrategyType,
+		}
+
+		if batchSize < int(scale) {
+			pdbSize := service.BatchSize
+			if service.BatchSize > service.Scale {
+				pdbSize = 1
+			}
+			pdbQuantity := intstr.FromInt(pdbSize)
+
+			pdb := &v1beta12.PodDisruptionBudget{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "PodDisruptionBudget",
+					APIVersion: "policy/v1beta1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("%s-%d", name, pdbQuantity.IntVal),
+					Namespace: namespace,
+				},
+				Spec: v1beta12.PodDisruptionBudgetSpec{
+					Selector: &metav1.LabelSelector{
+						MatchLabels: dep.Spec.Selector.MatchLabels,
+					},
+					MaxUnavailable: &pdbQuantity,
+				},
+				Status: v1beta12.PodDisruptionBudgetStatus{
+					DisruptedPods: map[string]metav1.Time{},
+				},
+			}
+
+			objects = append(objects, pdb)
+		}
+	}
+
+	return objects
+}
+
+func (s *stackDeployController) deployment(labels map[string]string, depName, serviceName, namespace string, service *v1beta1.ServiceUnversionedSpec) *v1beta2.Deployment {
+	podSpec := podSpec(serviceName, service)
+
+	return &v1beta2.Deployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Deployment",
 			APIVersion: "apps/v1beta2",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      service.Name,
-			Namespace: service.Namespace,
+			Name:        depName,
+			Namespace:   namespace,
+			Labels:      labels,
+			Annotations: map[string]string{},
 		},
 		Spec: v1beta2.DeploymentSpec{
+			Paused: false,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
@@ -75,72 +131,202 @@ func (s *stackDeployController) service(objects []runtime.Object, service *v1bet
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
 				},
-				Spec: podSpec(service),
-			},
-			Replicas: &scale,
-			Strategy: v1beta2.DeploymentStrategy{
-				RollingUpdate: &v1beta2.RollingUpdateDeployment{
-					MaxSurge:       &maxSurge,
-					MaxUnavailable: &maxUnavailable,
-				},
-				Type: v1beta2.RollingUpdateDeploymentStrategyType,
+				Spec: podSpec,
 			},
 		},
 	}
+}
 
-	k8sService := &v1.Service{
+func (s *stackDeployController) serviceSelector(name, namespace string, labels map[string]string) *v1.Service {
+	return &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      service.Name,
-			Namespace: service.Namespace,
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
 		},
 		Spec: v1.ServiceSpec{
 			Type:      v1.ServiceTypeClusterIP,
 			ClusterIP: v1.ClusterIPNone,
 			Selector:  labels,
-		},
-	}
-
-	pdbSize := service.BatchSize
-	if service.BatchSize > service.Scale {
-		pdbSize = 1
-	}
-	pdbQuantity := intstr.FromInt(pdbSize)
-
-	pdb := &v1beta12.PodDisruptionBudget{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PodDisruptionBudget",
-			APIVersion: "policy/v1beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      service.Name,
-			Namespace: service.Namespace,
-		},
-		Spec: v1beta12.PodDisruptionBudgetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
+			Ports: []v1.ServicePort{
+				{
+					Name:       "default",
+					Protocol:   v1.ProtocolTCP,
+					TargetPort: intstr.FromInt(80),
+					Port:       80,
+				},
 			},
-			MaxUnavailable: &pdbQuantity,
 		},
 	}
-
-	return append(objects, dep, k8sService, pdb), nil
 }
 
-func podSpec(service *v1beta1.Service) v1.PodSpec {
-	podSpec := v1.PodSpec{
-		HostNetwork: service.NetworkMode == "host",
-		HostIPC:     service.IpcMode == "host",
-		HostPID:     service.PidMode == "pid",
-		Hostname:    service.Hostname,
+func MergeRevisionToService(service *v1beta1.Service, revision string) (*v1beta1.ServiceUnversionedSpec, error) {
+	// TODO: do better merging
+	newRevision := service.Spec.ServiceUnversionedSpec.DeepCopy()
+	serviceRevision, ok := service.Spec.Revisions[revision]
+	if !ok {
+		return nil, fmt.Errorf("failed to find revision for %s", revision)
 	}
+
+	err := convert.ToObj(&serviceRevision.Spec, newRevision)
+	return newRevision, err
+}
+
+func (s *stackDeployController) service(objects []runtime.Object, name, namespace string, service *v1beta1.Service) ([]runtime.Object, error) {
+	objects, err := s.addService(objects, "latest", name, namespace, &service.Spec.ServiceUnversionedSpec)
+
+	for revision := range service.Spec.Revisions {
+		newRevision, err := MergeRevisionToService(service, revision)
+		if err != nil {
+			return nil, err
+		}
+
+		objects, err = s.addService(objects, revision, name, namespace, newRevision)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return objects, err
+}
+
+func (s *stackDeployController) nodePorts(objects []runtime.Object, name, namespace string, service *v1beta1.ServiceUnversionedSpec, labels map[string]string) []runtime.Object {
+	nodePortService := &v1.Service{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Service",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		Spec: v1.ServiceSpec{
+			Type:     v1.ServiceTypeNodePort,
+			Selector: labels,
+		},
+	}
+
+	for i, portBinding := range service.PortBindings {
+		if portBinding.Port > 0 {
+			continue
+		}
+
+		servicePort := v1.ServicePort{
+			Name:       fmt.Sprintf("port-%d", i),
+			TargetPort: intstr.FromInt(int(portBinding.TargetPort)),
+			Port:       int32(portBinding.TargetPort),
+		}
+
+		switch portBinding.Protocol {
+		case "tcp":
+			servicePort.Protocol = v1.ProtocolTCP
+		case "udp":
+			servicePort.Protocol = v1.ProtocolUDP
+		default:
+			continue
+		}
+
+		nodePortService.Spec.Ports = append(nodePortService.Spec.Ports, servicePort)
+	}
+
+	if len(nodePortService.Spec.Ports) > 0 {
+		objects = append(objects, nodePortService)
+	}
+
+	return objects
+}
+
+func (s *stackDeployController) addService(objects []runtime.Object, revision, serviceName, namespace string, service *v1beta1.ServiceUnversionedSpec) ([]runtime.Object, error) {
+	labels := map[string]string{
+		"rio.cattle.io":           "true",
+		"rio.cattle.io/service":   serviceName,
+		"rio.cattle.io/namespace": namespace,
+		"rio.cattle.io/revision":  revision,
+	}
+
+	name := fmt.Sprintf("%s-%s", serviceName, revision)
+	if revision == "latest" {
+		name = serviceName
+	}
+
+	dep := s.deployment(labels, name, serviceName, namespace, service)
+	k8sService := s.serviceSelector(name, namespace, labels)
+	objects = s.nodePorts(objects, name+"-ports", namespace, service, labels)
+	objects = append(objects, dep, k8sService)
+	objects = addScale(objects, name, serviceName, namespace, dep, service)
+
+	return objects, nil
+}
+
+func ports(podSpec *v1.PodSpec, service *v1beta1.ServiceUnversionedSpec) {
+	for _, portBinding := range service.PortBindings {
+		if portBinding.Port <= 0 {
+			continue
+		}
+
+		port := v1.ContainerPort{
+			HostPort:      int32(portBinding.Port),
+			ContainerPort: int32(portBinding.TargetPort),
+			HostIP:        portBinding.IP,
+		}
+
+		switch portBinding.Protocol {
+		case "tcp":
+			port.Protocol = v1.ProtocolTCP
+		case "udp":
+			port.Protocol = v1.ProtocolUDP
+		default:
+			continue
+		}
+
+		podSpec.Containers[0].Ports = append(podSpec.Containers[0].Ports, port)
+	}
+}
+
+func dns(podSpec *v1.PodSpec, service *v1beta1.ServiceUnversionedSpec) {
+	dnsConfig := &v1.PodDNSConfig{
+		Nameservers: service.DNS,
+		Searches:    service.DNSSearch,
+	}
+
+	for _, dnsOpt := range service.DNSOptions {
+		k, v := kv.Split(dnsOpt, "=")
+		opt := v1.PodDNSConfigOption{
+			Name: k,
+		}
+		if len(v) > 0 {
+			opt.Value = &v
+		}
+		dnsConfig.Options = append(dnsConfig.Options, opt)
+	}
+
+	if len(dnsConfig.Options) > 0 || len(dnsConfig.Searches) > 0 || len(dnsConfig.Nameservers) > 0 {
+		podSpec.DNSConfig = dnsConfig
+	}
+
+}
+
+func podSpec(serviceName string, service *v1beta1.ServiceUnversionedSpec) v1.PodSpec {
+	f := false
+
+	podSpec := v1.PodSpec{
+		HostNetwork:                  service.NetworkMode == "host",
+		HostIPC:                      service.IpcMode == "host",
+		HostPID:                      service.PidMode == "pid",
+		Hostname:                     service.Hostname,
+		AutomountServiceAccountToken: &f,
+	}
+
+	dns(&podSpec, service)
 
 	volumes := map[string]v1.Volume{}
 
-	podSpec.Containers = append(podSpec.Containers, container(service.Name, service.ContainerConfig, volumes))
+	podSpec.Containers = append(podSpec.Containers, container(serviceName, service.ContainerConfig, volumes))
 	for name, sidekick := range service.Sidecars {
 		c := container(name, sidekick.ContainerConfig, volumes)
 		if sidekick.InitContainer {
@@ -176,16 +362,20 @@ func podSpec(service *v1beta1.Service) v1.PodSpec {
 		podSpec.Volumes = append(podSpec.Volumes, volume)
 	}
 
+	// Must be done after the first container is added
+	ports(&podSpec, service)
+
 	return podSpec
 }
 
 func container(name string, container v1beta1.ContainerConfig, volumes map[string]v1.Volume) v1.Container {
 	c := v1.Container{
-		Name:       name,
-		Image:      container.Image,
-		Command:    container.Entrypoint,
-		Args:       container.Command,
-		WorkingDir: container.WorkingDir,
+		Name:            name,
+		Image:           container.Image,
+		Command:         container.Entrypoint,
+		Args:            container.Command,
+		WorkingDir:      container.WorkingDir,
+		ImagePullPolicy: v1.PullIfNotPresent,
 		SecurityContext: &v1.SecurityContext{
 			ReadOnlyRootFilesystem: &container.ReadonlyRootfs,
 			Capabilities: &v1.Capabilities{

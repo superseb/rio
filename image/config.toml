@@ -53,7 +53,7 @@
   # "plugins.cri.cni" contains config related to cni
   [plugins.cri.cni]
     # bin_dir is the directory in which the binaries for the plugin is kept.
-    bin_dir = "/opt/cni/bin"
+    bin_dir = "/usr/share/cni/bin"
 
     # conf_dir is the directory in which the admin places a CNI conf.
     conf_dir = "/etc/cni/net.d"
