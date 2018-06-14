@@ -3,10 +3,16 @@ rio
 
 ## Rio is coming mid July.  Stay tuned for more info.
 
+1. Simple as containers should be
+1. As fun as Docker was 3 years ago
+1. New shiny tech like service mesh
+1. Built on the amazing power of k8s and you never have to see it if you don't want to
+
 ## Building
 
-`make`
-
+There is no chance you'll be able to get this to compile.  The vendor deps are a complete mess
+right now and not checked in.  I'm still cleaning up a lot of hacks I've done, so that this
+can compile with proper deps.
 
 ## Running
 
