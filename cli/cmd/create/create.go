@@ -77,7 +77,7 @@ func (c *Create) RunCallback(app *cli.Context, cb func(service *client.Service) 
 		return err
 	}
 
-	service.SpaceId, service.StackId, service.Name, err = ctx.ResolveSpaceStackName(service.Name)
+	service.SpaceID, service.StackID, service.Name, err = ctx.ResolveSpaceStackName(service.Name)
 	if err != nil {
 		return err
 	}

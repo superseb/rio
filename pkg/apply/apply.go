@@ -17,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func ApplyContent(content []byte) error {
+func Content(content []byte) error {
 	errOutput := &bytes.Buffer{}
 	cmd := exec.Command("kubectl", "apply", "-f", "-")
 	cmd.Stdin = bytes.NewReader(content)

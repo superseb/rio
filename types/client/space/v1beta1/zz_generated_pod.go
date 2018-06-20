@@ -49,7 +49,7 @@ const (
 	PodFieldTolerations                   = "tolerations"
 	PodFieldTransitioning                 = "transitioning"
 	PodFieldTransitioningMessage          = "transitioningMessage"
-	PodFieldUuid                          = "uuid"
+	PodFieldUUID                          = "uuid"
 	PodFieldVolumes                       = "volumes"
 )
 
@@ -98,7 +98,7 @@ type Pod struct {
 	Tolerations                   []Toleration           `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
 	Transitioning                 string                 `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
 	TransitioningMessage          string                 `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
-	Uuid                          string                 `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	UUID                          string                 `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Volumes                       []Volume               `json:"volumes,omitempty" yaml:"volumes,omitempty"`
 }
 type PodCollection struct {

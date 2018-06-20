@@ -12,7 +12,7 @@ type Ps struct {
 }
 
 func (p *Ps) Customize(cmd *cli.Command) {
-	cmd.Flags = append(table.TableWriterFlags(), cmd.Flags...)
+	cmd.Flags = append(table.WriterFlags(), cmd.Flags...)
 }
 
 func (p *Ps) Run(app *cli.Context) error {

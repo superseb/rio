@@ -82,8 +82,8 @@ func (p *Ps) services(app *cli.Context, ctx *server.Context) error {
 		writer.Write(&ServiceData{
 			ID:       service.ID,
 			Service:  &services.Data[i],
-			Stack:    stackByID[service.StackId],
-			Endpoint: endpoint(ctx, stackByID[service.StackId], service.PortBindings, &service),
+			Stack:    stackByID[service.StackID],
+			Endpoint: endpoint(ctx, stackByID[service.StackID], service.PortBindings, &service),
 		})
 
 		for revName, revision := range service.Revisions {
@@ -100,9 +100,9 @@ func (p *Ps) services(app *cli.Context, ctx *server.Context) error {
 			writer.Write(&ServiceData{
 				ID:      service.ID,
 				Service: newService,
-				Stack:   stackByID[service.StackId],
+				Stack:   stackByID[service.StackID],
 				// use parent service ports
-				Endpoint: endpoint(ctx, stackByID[service.StackId], service.PortBindings, newService),
+				Endpoint: endpoint(ctx, stackByID[service.StackID], service.PortBindings, newService),
 			})
 		}
 	}

@@ -6,5 +6,13 @@ source $(dirname $0)/version
 cd $(dirname $0)/..
 
 mkdir -p bin
-[ "$(uname)" != "Darwin" ] && LINKFLAGS="-linkmode external -extldflags -static -s"
-CGO_ENABLED=0 go build -ldflags "-X main.VERSION=$VERSION $LINKFLAGS" -o bin/rio
+echo Building incluster
+go build -ldflags "-X main.VERSION=$VERSION -linkmode external -extldflags -static -s" -o bin/rio-incluster
+echo Building cli full
+go build -tags k3s -ldflags "-X main.VERSION=$VERSION -linkmode external -extldflags -static -s" -o bin/rio-full ./cli/main.go
+echo Building agent
+go build -tags k3s -ldflags "-X main.VERSION=$VERSION -s" -o bin/rio-agent ./agent/main.go
+echo Building windows CLI
+GOOS=windows GOARCH=amd64 go build -ldflags "-X main.VERSION=$VERSION -s" -o bin/rio-windows ./cli/main.go
+echo Building mac CLI
+GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.VERSION=$VERSION -s" -o bin/rio-darwin ./cli/main.go

@@ -11,12 +11,12 @@ const (
 	StackFieldLabels               = "labels"
 	StackFieldName                 = "name"
 	StackFieldRemoved              = "removed"
-	StackFieldSpaceId              = "spaceId"
+	StackFieldSpaceID              = "spaceId"
 	StackFieldState                = "state"
 	StackFieldTemplates            = "templates"
 	StackFieldTransitioning        = "transitioning"
 	StackFieldTransitioningMessage = "transitioningMessage"
-	StackFieldUuid                 = "uuid"
+	StackFieldUUID                 = "uuid"
 )
 
 type Stack struct {
@@ -26,12 +26,12 @@ type Stack struct {
 	Labels               map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Name                 string            `json:"name,omitempty" yaml:"name,omitempty"`
 	Removed              string            `json:"removed,omitempty" yaml:"removed,omitempty"`
-	SpaceId              string            `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
+	SpaceID              string            `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
 	State                string            `json:"state,omitempty" yaml:"state,omitempty"`
 	Templates            map[string]string `json:"templates,omitempty" yaml:"templates,omitempty"`
 	Transitioning        string            `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
 	TransitioningMessage string            `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
-	Uuid                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	UUID                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 }
 type StackCollection struct {
 	types.Collection

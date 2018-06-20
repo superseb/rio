@@ -195,7 +195,7 @@ func (s *ExportFormatter) addServices(request *types.APIContext, resource *types
 func byStackID(id string) *types.QueryOptions {
 	return &types.QueryOptions{
 		Conditions: []*types.QueryCondition{
-			types.EQ(client.ServiceFieldStackId, id),
+			types.EQ(client.ServiceFieldStackID, id),
 		},
 	}
 }

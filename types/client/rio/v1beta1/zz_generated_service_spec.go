@@ -32,8 +32,8 @@ const (
 	ServiceSpecFieldRevisions              = "revisions"
 	ServiceSpecFieldScale                  = "scale"
 	ServiceSpecFieldSidecars               = "sidecars"
-	ServiceSpecFieldSpaceId                = "spaceId"
-	ServiceSpecFieldStackId                = "stackId"
+	ServiceSpecFieldSpaceID                = "spaceId"
+	ServiceSpecFieldStackID                = "stackId"
 	ServiceSpecFieldStopGracePeriodSeconds = "stopGracePeriod"
 	ServiceSpecFieldTmpfs                  = "tmpfs"
 	ServiceSpecFieldTty                    = "tty"
@@ -75,8 +75,8 @@ type ServiceSpec struct {
 	Revisions              map[string]ServiceRevision `json:"revisions,omitempty" yaml:"revisions,omitempty"`
 	Scale                  int64                      `json:"scale,omitempty" yaml:"scale,omitempty"`
 	Sidecars               map[string]SidecarConfig   `json:"sidecars,omitempty" yaml:"sidecars,omitempty"`
-	SpaceId                string                     `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
-	StackId                string                     `json:"stackId,omitempty" yaml:"stackId,omitempty"`
+	SpaceID                string                     `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
+	StackID                string                     `json:"stackId,omitempty" yaml:"stackId,omitempty"`
 	StopGracePeriodSeconds *int64                     `json:"stopGracePeriod,omitempty" yaml:"stopGracePeriod,omitempty"`
 	Tmpfs                  []Tmpfs                    `json:"tmpfs,omitempty" yaml:"tmpfs,omitempty"`
 	Tty                    bool                       `json:"tty,omitempty" yaml:"tty,omitempty"`

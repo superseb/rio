@@ -48,7 +48,7 @@ func Register(ctx context.Context, context *types.Context) {
 	c := &controller{
 		nodeLister:        context.Core.Nodes("").Controller().Lister(),
 		serviceController: context.Rio.Services("").Controller(),
-		kServiceLister:    context.Core.Services("").Controller().Lister(),
+		k8sServiceLister:  context.Core.Services("").Controller().Lister(),
 		serviceLister:     context.Rio.Services("").Controller().Lister(),
 		endpointLister:    context.Core.Endpoints("").Controller().Lister(),
 	}
@@ -77,7 +77,7 @@ func Register(ctx context.Context, context *types.Context) {
 type controller struct {
 	nodeLister        v1.NodeLister
 	serviceController v1beta1.ServiceController
-	kServiceLister    v1.ServiceLister
+	k8sServiceLister  v1.ServiceLister
 	serviceLister     v1beta1.ServiceLister
 	endpointLister    v1.EndpointsLister
 	cache             cache.SnapshotCache
@@ -134,7 +134,7 @@ func (c *controller) clustersAndEndpoints() ([]cache.Resource, []cache.Resource,
 		endpoints []cache.Resource
 	)
 
-	services, err := c.kServiceLister.List("", rioServiceSelector)
+	services, err := c.k8sServiceLister.List("", rioServiceSelector)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -228,7 +228,7 @@ func (c *controller) routes(subdomain string) ([]cache.Resource, error) {
 
 	var virtualHosts []route.VirtualHost
 	for _, service := range services {
-		port := getHttpPort(service)
+		port := getHTTPPort(service)
 		if port <= 0 {
 			continue
 		}
@@ -342,7 +342,7 @@ func directVHosts(namespace, serviceName, revision, subdomain string) route.Virt
 	}
 }
 
-func getHttpPort(service *v1beta1.Service) int32 {
+func getHTTPPort(service *v1beta1.Service) int32 {
 	for _, port := range service.Spec.PortBindings {
 		if port.Protocol == "http" {
 			//TODO hardcoded

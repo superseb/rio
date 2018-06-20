@@ -13,7 +13,7 @@ const (
 	SpaceFieldState                = "state"
 	SpaceFieldTransitioning        = "transitioning"
 	SpaceFieldTransitioningMessage = "transitioningMessage"
-	SpaceFieldUuid                 = "uuid"
+	SpaceFieldUUID                 = "uuid"
 )
 
 type Space struct {
@@ -25,7 +25,7 @@ type Space struct {
 	State                string            `json:"state,omitempty" yaml:"state,omitempty"`
 	Transitioning        string            `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
 	TransitioningMessage string            `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
-	Uuid                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	UUID                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 }
 type SpaceCollection struct {
 	types.Collection

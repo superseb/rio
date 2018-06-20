@@ -32,7 +32,7 @@ const (
 	ListenConfigFieldSerialNumber            = "serialNumber"
 	ListenConfigFieldSubjectAlternativeNames = "subjectAlternativeNames"
 	ListenConfigFieldTOS                     = "tos"
-	ListenConfigFieldUuid                    = "uuid"
+	ListenConfigFieldUUID                    = "uuid"
 	ListenConfigFieldVersion                 = "version"
 )
 
@@ -64,7 +64,7 @@ type ListenConfig struct {
 	SerialNumber            string            `json:"serialNumber,omitempty" yaml:"serialNumber,omitempty"`
 	SubjectAlternativeNames []string          `json:"subjectAlternativeNames,omitempty" yaml:"subjectAlternativeNames,omitempty"`
 	TOS                     []string          `json:"tos,omitempty" yaml:"tos,omitempty"`
-	Uuid                    string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	UUID                    string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Version                 int64             `json:"version,omitempty" yaml:"version,omitempty"`
 }
 type ListenConfigCollection struct {

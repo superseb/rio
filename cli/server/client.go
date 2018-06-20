@@ -88,7 +88,7 @@ func (c *Context) ResolveSpaceStackName(in string) (string, string, string, erro
 	if len(stacks.Data) == 0 {
 		s, err = c.Client.Stack.Create(&client.Stack{
 			Name:    stackName,
-			SpaceId: c.SpaceID,
+			SpaceID: c.SpaceID,
 		})
 		if err != nil {
 			return "", "", "", errors.Wrapf(err, "failed to create stack %s", stackName)
@@ -97,5 +97,5 @@ func (c *Context) ResolveSpaceStackName(in string) (string, string, string, erro
 		s = &stacks.Data[0]
 	}
 
-	return s.SpaceId, s.ID, name, nil
+	return s.SpaceID, s.ID, name, nil
 }

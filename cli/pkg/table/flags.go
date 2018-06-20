@@ -17,6 +17,6 @@ var stackLsFlags = []cli.Flag{
 	},
 }
 
-func TableWriterFlags() []cli.Flag {
+func WriterFlags() []cli.Flag {
 	return stackLsFlags
 }

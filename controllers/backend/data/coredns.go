@@ -131,5 +131,5 @@ spec:
 )
 
 func addCoreDNS() error {
-	return apply.ApplyContent([]byte(coreDNS))
+	return apply.Content([]byte(coreDNS))
 }

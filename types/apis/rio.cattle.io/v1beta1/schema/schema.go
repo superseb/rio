@@ -50,7 +50,7 @@ func serviceTypes(schemas *types.Schemas) *types.Schemas {
 func stackTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.
 		AddMapperForType(&Version, v1beta1.Stack{},
-			mapper.Move{From: "namespace", To: "spaceId"}).
+			mapper.Move{From: "namespace", To: "spaceId", CodeName: "SpaceID"}).
 		MustImportAndCustomize(&Version, v1beta1.Stack{}, func(schema *types.Schema) {
 			schema.MustCustomizeField("spaceId", func(f types.Field) types.Field {
 				f.Type = "reference[space]"

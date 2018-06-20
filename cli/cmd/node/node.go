@@ -10,20 +10,20 @@ import (
 	"github.com/urfave/cli"
 )
 
-func NodeCommand() cli.Command {
+func Node() cli.Command {
 	return cli.Command{
 		Name:      "nodes",
 		ShortName: "node",
 		Usage:     "Operations on nodes",
 		Action:    defaultAction(nodeLs),
-		Flags:     table.TableWriterFlags(),
+		Flags:     table.WriterFlags(),
 		Subcommands: []cli.Command{
 			{
 				Name:      "ls",
 				Usage:     "List nodes",
 				ArgsUsage: "None",
 				Action:    nodeLs,
-				Flags:     table.TableWriterFlags(),
+				Flags:     table.WriterFlags(),
 			},
 			{
 				Name:      "delete",
@@ -36,7 +36,7 @@ func NodeCommand() cli.Command {
 	}
 }
 
-type NodeData struct {
+type Data struct {
 	ID   string
 	Node spaceclient.Node
 }
@@ -69,7 +69,7 @@ func nodeLs(app *cli.Context) error {
 	writer.AddFormatFunc("name", FormatName)
 
 	for _, item := range collection.Data {
-		writer.Write(&NodeData{
+		writer.Write(&Data{
 			ID:   item.ID,
 			Node: item,
 		})

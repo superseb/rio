@@ -73,7 +73,7 @@ func main() {
 	}
 
 	app.Commands = []cli.Command{
-		stack.StackCommand(),
+		stack.Stack(),
 		builder.Command(&ps.Ps{},
 			"List services and containers",
 			appName+" ps [OPTIONS] [STACK...]",
@@ -130,7 +130,7 @@ func main() {
 			"Weight a percentage of traffic to a staged service",
 			appName+" weight [OPTIONS] [SERVICE_REVISION=PERCENTAGE...]",
 			""),
-		node.NodeCommand(),
+		node.Node(),
 	}
 	app.Commands = append(app.Commands,
 		waiter.WaitCommand())

@@ -106,7 +106,7 @@ type VolumeOptions struct {
 	SubPath      string        `json:"subPath,omitempty"`
 }
 
-// Driver represents a volume driver.
+// DriverConfig represents a volume driver.
 type DriverConfig struct {
 	Name    string            `json:"name,omitempty"`
 	Options map[string]string `json:"options,omitempty"`
@@ -133,7 +133,7 @@ func (d DriverConfig) String() string {
 	return str
 }
 
-// TmpfsOptions defines options specific to mounts of type "tmpfs".
+// Tmpfs defines options specific to mounts of type "tmpfs".
 type Tmpfs struct {
 	SizeBytes int64  `json:"sizeBytes,omitempty"`
 	ReadOnly  bool   `json:"readOnly,omitempty"`

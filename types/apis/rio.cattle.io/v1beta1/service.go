@@ -112,6 +112,7 @@ func (p PortBinding) String() string {
 }
 
 // TODO: add pull policy
+
 type ContainerConfig struct {
 	ContainerPrivilegedConfig
 

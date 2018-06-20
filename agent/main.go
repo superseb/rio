@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -8,11 +9,11 @@ import (
 
 	"github.com/containerd/containerd/cmd/containerd/command"
 	"github.com/coreos/flannel"
+	"github.com/rancher/norman/signal"
 	"github.com/rancher/rio/pkg/clientaccess"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/cmd/agent"
 
-	// Containerd
 	_ "github.com/containerd/containerd/diff/walking/plugin"
 	_ "github.com/containerd/containerd/gc/scheduler"
 	_ "github.com/containerd/containerd/services/containers"
@@ -43,6 +44,8 @@ func main() {
 }
 
 func run() error {
+	ctx := signal.SigTermCancelContext(context.Background())
+
 	runContainerd()
 
 	agentConfig, err := getConfig()
@@ -54,16 +57,23 @@ func run() error {
 		return err
 	}
 
-	return runFlannel(agentConfig)
+	if err := runFlannel(agentConfig); err != nil {
+		return err
+	}
+
+	<-ctx.Done()
+	return nil
 }
 
 func runFlannel(config *agent.AgentConfig) error {
-	flannel.Main([]string{
-		"--ip-masq",
-		"--kubeconfig-file", config.KubeConfig,
-	})
+	go func() {
+		flannel.Main([]string{
+			"--ip-masq",
+			"--kubeconfig-file", config.KubeConfig,
+		})
 
-	logrus.Fatalf("flannel exited")
+		logrus.Fatalf("flannel exited")
+	}()
 	return nil
 }
 

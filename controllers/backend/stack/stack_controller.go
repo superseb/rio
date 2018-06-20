@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	projectId = "field.cattle.io/projectId"
+	projectID = "field.cattle.io/projectId"
 )
 
 func Register(ctx context.Context, rContext *types.Context) {

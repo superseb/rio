@@ -205,12 +205,4 @@ func run(data string) error {
 	}
 
 	return syscall.Exec("/usr/init", os.Args, os.Environ())
-	cmd := exec.Command("/usr/init", os.Args[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Cloneflags: syscall.CLONE_NEWPID | syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWNS,
-	}
-	return cmd.Run()
 }

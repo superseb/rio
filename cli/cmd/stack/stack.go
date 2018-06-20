@@ -12,20 +12,20 @@ import (
 	"github.com/urfave/cli"
 )
 
-func StackCommand() cli.Command {
+func Stack() cli.Command {
 	return cli.Command{
 		Name:      "stacks",
 		ShortName: "stack",
 		Usage:     "Operations on stacks",
 		Action:    defaultAction(stackLs),
-		Flags:     table.TableWriterFlags(),
+		Flags:     table.WriterFlags(),
 		Subcommands: []cli.Command{
 			{
 				Name:      "ls",
 				Usage:     "List stacks",
 				ArgsUsage: "None",
 				Action:    stackLs,
-				Flags:     table.TableWriterFlags(),
+				Flags:     table.WriterFlags(),
 			},
 			{
 				Name:      "create",
@@ -62,7 +62,7 @@ func StackCommand() cli.Command {
 	}
 }
 
-type StackData struct {
+type Data struct {
 	ID    string
 	Stack client.Stack
 }
@@ -88,7 +88,7 @@ func stackLs(app *cli.Context) error {
 	defer writer.Close()
 
 	for _, item := range collection.Data {
-		writer.Write(&StackData{
+		writer.Write(&Data{
 			ID:    item.ID,
 			Stack: item,
 		})

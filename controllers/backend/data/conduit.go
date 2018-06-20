@@ -667,5 +667,5 @@ data:
 )
 
 func addConduit() error {
-	return apply.ApplyContent([]byte(conduit))
+	return apply.Content([]byte(conduit))
 }

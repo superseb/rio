@@ -41,17 +41,17 @@ const (
 	ServiceFieldScale                  = "scale"
 	ServiceFieldScaleStatus            = "scaleStatus"
 	ServiceFieldSidecars               = "sidecars"
-	ServiceFieldSpaceId                = "spaceId"
-	ServiceFieldStackId                = "stackId"
+	ServiceFieldSpaceID                = "spaceId"
+	ServiceFieldStackID                = "stackId"
 	ServiceFieldState                  = "state"
 	ServiceFieldStopGracePeriodSeconds = "stopGracePeriod"
 	ServiceFieldTmpfs                  = "tmpfs"
 	ServiceFieldTransitioning          = "transitioning"
 	ServiceFieldTransitioningMessage   = "transitioningMessage"
 	ServiceFieldTty                    = "tty"
+	ServiceFieldUUID                   = "uuid"
 	ServiceFieldUpdateOrder            = "updateOrder"
 	ServiceFieldUser                   = "user"
-	ServiceFieldUuid                   = "uuid"
 	ServiceFieldVolumes                = "volumes"
 	ServiceFieldVolumesFrom            = "volumesFrom"
 	ServiceFieldWorkingDir             = "workingDir"
@@ -94,17 +94,17 @@ type Service struct {
 	Scale                  int64                      `json:"scale,omitempty" yaml:"scale,omitempty"`
 	ScaleStatus            *ScaleStatus               `json:"scaleStatus,omitempty" yaml:"scaleStatus,omitempty"`
 	Sidecars               map[string]SidecarConfig   `json:"sidecars,omitempty" yaml:"sidecars,omitempty"`
-	SpaceId                string                     `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
-	StackId                string                     `json:"stackId,omitempty" yaml:"stackId,omitempty"`
+	SpaceID                string                     `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
+	StackID                string                     `json:"stackId,omitempty" yaml:"stackId,omitempty"`
 	State                  string                     `json:"state,omitempty" yaml:"state,omitempty"`
 	StopGracePeriodSeconds *int64                     `json:"stopGracePeriod,omitempty" yaml:"stopGracePeriod,omitempty"`
 	Tmpfs                  []Tmpfs                    `json:"tmpfs,omitempty" yaml:"tmpfs,omitempty"`
 	Transitioning          string                     `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
 	TransitioningMessage   string                     `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
 	Tty                    bool                       `json:"tty,omitempty" yaml:"tty,omitempty"`
+	UUID                   string                     `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	UpdateOrder            string                     `json:"updateOrder,omitempty" yaml:"updateOrder,omitempty"`
 	User                   string                     `json:"user,omitempty" yaml:"user,omitempty"`
-	Uuid                   string                     `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Volumes                []Mount                    `json:"volumes,omitempty" yaml:"volumes,omitempty"`
 	VolumesFrom            []string                   `json:"volumesFrom,omitempty" yaml:"volumesFrom,omitempty"`
 	WorkingDir             string                     `json:"workingDir,omitempty" yaml:"workingDir,omitempty"`

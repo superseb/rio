@@ -23,8 +23,8 @@ func (s *stackController) createBackingNamespace(stack *v1beta1.Stack) (*v1beta1
 			},
 		}
 
-		if project, ok := currentNs.Annotations[projectId]; ok {
-			ns.Annotations[projectId] = project
+		if project, ok := currentNs.Annotations[projectID]; ok {
+			ns.Annotations[projectID] = project
 		}
 
 		_, err = s.namespaces.Create(ns)

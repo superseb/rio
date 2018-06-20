@@ -25,8 +25,8 @@ const (
 	NodeFieldTaints               = "taints"
 	NodeFieldTransitioning        = "transitioning"
 	NodeFieldTransitioningMessage = "transitioningMessage"
+	NodeFieldUUID                 = "uuid"
 	NodeFieldUnschedulable        = "unschedulable"
-	NodeFieldUuid                 = "uuid"
 	NodeFieldVolumesAttached      = "volumesAttached"
 	NodeFieldVolumesInUse         = "volumesInUse"
 )
@@ -52,8 +52,8 @@ type Node struct {
 	Taints               []Taint              `json:"taints,omitempty" yaml:"taints,omitempty"`
 	Transitioning        string               `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
 	TransitioningMessage string               `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
+	UUID                 string               `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Unschedulable        bool                 `json:"unschedulable,omitempty" yaml:"unschedulable,omitempty"`
-	Uuid                 string               `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	VolumesAttached      []AttachedVolume     `json:"volumesAttached,omitempty" yaml:"volumesAttached,omitempty"`
 	VolumesInUse         []string             `json:"volumesInUse,omitempty" yaml:"volumesInUse,omitempty"`
 }
