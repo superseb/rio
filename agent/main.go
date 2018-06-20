@@ -6,10 +6,34 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containerd/containerd/cmd/containerd/command"
 	"github.com/coreos/flannel"
 	"github.com/rancher/rio/pkg/clientaccess"
 	"github.com/sirupsen/logrus"
 	"k8s.io/kubernetes/cmd/agent"
+
+	// Containerd
+	_ "github.com/containerd/containerd/diff/walking/plugin"
+	_ "github.com/containerd/containerd/gc/scheduler"
+	_ "github.com/containerd/containerd/services/containers"
+	_ "github.com/containerd/containerd/services/content"
+	_ "github.com/containerd/containerd/services/diff"
+	_ "github.com/containerd/containerd/services/events"
+	_ "github.com/containerd/containerd/services/healthcheck"
+	_ "github.com/containerd/containerd/services/images"
+	_ "github.com/containerd/containerd/services/introspection"
+	_ "github.com/containerd/containerd/services/leases"
+	_ "github.com/containerd/containerd/services/namespaces"
+	_ "github.com/containerd/containerd/services/snapshots"
+	_ "github.com/containerd/containerd/services/tasks"
+	_ "github.com/containerd/containerd/services/version"
+
+	_ "github.com/containerd/containerd/linux"
+	_ "github.com/containerd/containerd/metrics/cgroups"
+	_ "github.com/containerd/containerd/snapshots/native"
+	_ "github.com/containerd/containerd/snapshots/overlay"
+
+	_ "github.com/containerd/cri"
 )
 
 func main() {
@@ -19,6 +43,8 @@ func main() {
 }
 
 func run() error {
+	runContainerd()
+
 	agentConfig, err := getConfig()
 	if err != nil {
 		return err
@@ -39,6 +65,21 @@ func runFlannel(config *agent.AgentConfig) error {
 
 	logrus.Fatalf("flannel exited")
 	return nil
+}
+
+func runContainerd() {
+	args := []string{
+		"containerd",
+		"-a", "/run/rio/containerd.sock",
+		"--state", "/run/rio/containerd",
+	}
+	app := command.App()
+	go func() {
+		if err := app.Run(args); err != nil {
+			fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
+			os.Exit(1)
+		}
+	}()
 }
 
 func getConfig() (*agent.AgentConfig, error) {

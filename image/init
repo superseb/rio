@@ -115,5 +115,4 @@ mkdir -p /run/rio/containerd
 # Cleanup networking since there seems to be a bug
 rm -rf /var/lib/cni/networks/cbr0/10.42* 2>/dev/null || true
 
-env -i -- HOME=/root PATH=/sbin:/bin containerd -a /run/rio/containerd.sock --state /run/rio/containerd &
 exec env -i -- HOME=/root PATH=/sbin:/bin NODE_NAME=$NODE_NAME RIO_URL=$RIO_URL RIO_TOKEN=$RIO_TOKEN RIO_DATA_DIR=$RIO_DATA_DIR agent

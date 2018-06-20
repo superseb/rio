@@ -1,3 +1,11 @@
+FROM golang:1.10 AS cni
+RUN mkdir -p $GOPATH/src/github.com/containernetworking && \
+    cd $GOPATH/src/github.com/containernetworking && \
+    git clone https://github.com/ibuildthecloud/plugins.git && \
+    cd plugins && \
+    git checkout 299b021fdcb5533d5babc40006d2965a8563066a
+RUN go build -ldflags -s -o /usr/bin/cni github.com/containernetworking/plugins
+
 FROM ubuntu:18.04 AS ubuntu
 RUN yes | unminimize
 RUN apt-get update
@@ -28,14 +36,17 @@ RUN mkdir /usr/src/image && \
     tar xvf /usr/src/buildroot/output/images/rootfs.tar -C /usr/src/image ./usr --strip-components=2
 
 RUN curl -fL -o /usr/src/image/bin/runc https://github.com/opencontainers/runc/releases/download/v1.0.0-rc5/runc.amd64
-RUN chmod +x /usr/src/image/bin/runc
+RUN chmod +x /usr/src/image/bin/runc && strip --strip-debug /usr/src/image/bin/runc
 
 RUN curl -fL -o /usr/src/containerd.tgz https://github.com/containerd/containerd/releases/download/v1.1.0/containerd-1.1.0.linux-amd64.tar.gz
-RUN tar xvf /usr/src/containerd.tgz -C /usr/src/image/bin bin/containerd bin/containerd-shim --strip-components=1
+RUN tar xvf /usr/src/containerd.tgz -C /usr/src/image/bin bin/containerd-shim --strip-components=1
 
-RUN curl -fL -o /usr/src/cni.tgz https://github.com/containernetworking/plugins/releases/download/v0.7.1/cni-plugins-amd64-v0.7.1.tgz
 RUN mkdir -p /usr/src/image/share/cni/bin
-RUN tar xvf /usr/src/cni.tgz -C /usr/src/image/share/cni/bin ./bridge ./flannel ./host-local ./loopback ./portmap
+COPY --from=cni /usr/bin/cni /usr/src/image/share/cni/bin
+RUN cd /usr/src/image/share/cni/bin && \
+    for i in ./bridge ./flannel ./host-local ./loopback ./portmap; do \
+        ln -s cni $i \
+    ;done
 
 RUN mkdir -p /usr/src/image/etc/containerd
 COPY config.toml /usr/src/image/etc/containerd/config.toml
