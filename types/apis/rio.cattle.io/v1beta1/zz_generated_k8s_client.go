@@ -17,6 +17,8 @@ type Interface interface {
 
 	StacksGetter
 	ServicesGetter
+	ConfigsGetter
+	VolumesGetter
 }
 
 type Client struct {
@@ -26,6 +28,8 @@ type Client struct {
 
 	stackControllers   map[string]StackController
 	serviceControllers map[string]ServiceController
+	configControllers  map[string]ConfigController
+	volumeControllers  map[string]VolumeController
 }
 
 func NewForConfig(config rest.Config) (Interface, error) {
@@ -44,6 +48,8 @@ func NewForConfig(config rest.Config) (Interface, error) {
 
 		stackControllers:   map[string]StackController{},
 		serviceControllers: map[string]ServiceController{},
+		configControllers:  map[string]ConfigController{},
+		volumeControllers:  map[string]VolumeController{},
 	}, nil
 }
 
@@ -79,6 +85,32 @@ type ServicesGetter interface {
 func (c *Client) Services(namespace string) ServiceInterface {
 	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &ServiceResource, ServiceGroupVersionKind, serviceFactory{})
 	return &serviceClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type ConfigsGetter interface {
+	Configs(namespace string) ConfigInterface
+}
+
+func (c *Client) Configs(namespace string) ConfigInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &ConfigResource, ConfigGroupVersionKind, configFactory{})
+	return &configClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type VolumesGetter interface {
+	Volumes(namespace string) VolumeInterface
+}
+
+func (c *Client) Volumes(namespace string) VolumeInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &VolumeResource, VolumeGroupVersionKind, volumeFactory{})
+	return &volumeClient{
 		ns:           namespace,
 		client:       c,
 		objectClient: objectClient,

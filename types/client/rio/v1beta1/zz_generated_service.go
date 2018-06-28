@@ -109,6 +109,7 @@ type Service struct {
 	VolumesFrom            []string                   `json:"volumesFrom,omitempty" yaml:"volumesFrom,omitempty"`
 	WorkingDir             string                     `json:"workingDir,omitempty" yaml:"workingDir,omitempty"`
 }
+
 type ServiceCollection struct {
 	types.Collection
 	Data   []Service `json:"data,omitempty"`

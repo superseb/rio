@@ -11,6 +11,11 @@ type StackScoped struct {
 }
 
 func (s *StackScoped) FromInternal(data map[string]interface{}) {
+	labels := convert.ToMapInterface(values.GetValueN(data, "metadata", "labels"))
+	if len(labels) > 0 {
+		delete(labels, "apply.cattle.io/generationID")
+		delete(labels, "apply.cattle.io/groupID")
+	}
 }
 
 func (s *StackScoped) ToInternal(data map[string]interface{}) error {

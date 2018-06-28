@@ -67,6 +67,7 @@ type ListenConfig struct {
 	UUID                    string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Version                 int64             `json:"version,omitempty" yaml:"version,omitempty"`
 }
+
 type ListenConfigCollection struct {
 	types.Collection
 	Data   []ListenConfig `json:"data,omitempty"`

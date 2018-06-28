@@ -9,6 +9,8 @@ type Client struct {
 
 	Stack   StackOperations
 	Service ServiceOperations
+	Config  ConfigOperations
+	Volume  VolumeOperations
 }
 
 func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
@@ -23,6 +25,8 @@ func NewClient(opts *clientbase.ClientOpts) (*Client, error) {
 
 	client.Stack = newStackClient(client)
 	client.Service = newServiceClient(client)
+	client.Config = newConfigClient(client)
+	client.Volume = newVolumeClient(client)
 
 	return client, nil
 }

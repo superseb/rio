@@ -15,13 +15,13 @@ type Service struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ServiceSpec   `json:"spec"`
-	Status ServiceStatus `json:"status"`
+	Spec   ServiceSpec   `json:"spec,omitempty"`
+	Status ServiceStatus `json:"status,omitempty"`
 }
 
 type ServiceRevision struct {
-	Labels  map[string]string      `json:"labels,omitempty" protobuf:"bytes,11,rep,name=labels"`
-	Spec    ServiceUnversionedSpec `json:"spec"`
+	Labels  map[string]string      `json:"labels,omitempty"`
+	Spec    ServiceUnversionedSpec `json:"spec,omitempty"`
 	Weight  int                    `json:"weight,omitempty"`
 	Promote bool                   `json:"promote,omitempty"`
 	Status  ServiceStatus          `json:"status,omitempty"`
@@ -32,7 +32,6 @@ type ServiceUnversionedSpec struct {
 	BatchSize   int    `json:"batchSize,omitempty"`
 	UpdateOrder string `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
 
-	StackScoped
 	PodConfig
 	PrivilegedConfig
 	Sidecars map[string]SidecarConfig `json:"sidecars,omitempty"`
@@ -42,6 +41,7 @@ type ServiceUnversionedSpec struct {
 
 type ServiceSpec struct {
 	ServiceUnversionedSpec
+	StackScoped
 	Revisions map[string]ServiceRevision `json:"revisions,omitempty"`
 }
 

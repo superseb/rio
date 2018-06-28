@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"sort"
-
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/kv"
 	"github.com/rancher/rio/cli/pkg/table"
 	"github.com/rancher/rio/cli/server"
@@ -46,18 +45,13 @@ func FormatScale(data, data2 interface{}) (string, error) {
 }
 
 func (p *Ps) services(app *cli.Context, ctx *server.Context) error {
-	stacks, err := ctx.Client.Stack.List(nil)
-	if err != nil {
-		return err
-	}
-
-	services, err := ctx.Client.Service.List(nil)
+	services, err := ctx.Client.Service.List(util.DefaultListOpts())
 	if err != nil {
 		return err
 	}
 
 	writer := table.NewWriter([][]string{
-		{"NAME", "{{serviceName .Stack.Name .Service.Name}}"},
+		{"NAME", "{{stackScopedName .Stack.Name .Service.Name}}"},
 		{"IMAGE", "Service.Image"},
 		{"CREATED", "{{.Service.Created | ago}}"},
 		{"SCALE", "{{scale .Service.Scale .Service.ScaleStatus}}"},
@@ -69,14 +63,10 @@ func (p *Ps) services(app *cli.Context, ctx *server.Context) error {
 
 	writer.AddFormatFunc("scale", FormatScale)
 
-	stackByID := map[string]*client.Stack{}
-	for i, stack := range stacks.Data {
-		stackByID[stack.ID] = &stacks.Data[i]
+	stackByID, err := util.StacksByID(ctx)
+	if err != nil {
+		return err
 	}
-
-	sort.Slice(services.Data, func(i, j int) bool {
-		return services.Data[i].ID < services.Data[j].ID
-	})
 
 	for i, service := range services.Data {
 		writer.Write(&ServiceData{

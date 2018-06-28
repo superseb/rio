@@ -43,7 +43,7 @@ func k3sConfig(dataDir string) (*server.ServerConfig, error) {
 
 	return &server.ServerConfig{
 		PublicIP:       &listenIP,
-		PublicPort:     6443,
+		PublicPort:     6444,
 		PublicHostname: "localhost",
 		ListenAddr:     listenIP,
 		ListenPort:     6443,
@@ -103,7 +103,7 @@ func StartServer(ctx context.Context, dataDir string, httpPort, httpsPort int, c
 		})
 	}
 
-	root := router(apiServer, sc.Handler)
+	root := router(sc, apiServer, sc.Handler)
 
 	if err := startServer(ctx, apiRContext, httpPort, httpsPort, root); err != nil {
 		return err

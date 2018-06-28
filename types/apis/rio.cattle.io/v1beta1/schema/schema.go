@@ -19,11 +19,26 @@ var (
 	}
 
 	Schemas = factory.Schemas(&Version).
+		Init(configTypes).
 		Init(stackTypes).
-		Init(serviceTypes)
-
-	APIStackSchema = Schemas.Schema(&Version, "internalStack")
+		Init(serviceTypes).
+		Init(volumeTypes).
+		MustImport(&Version, v1beta1.InternalStack{})
 )
+
+func volumeTypes(schemas *types.Schemas) *types.Schemas {
+	return schemas.
+		AddMapperForType(&Version, v1beta1.Volume{},
+			mapper.Drop{Field: "namespace"},
+		)
+}
+
+func configTypes(schemas *types.Schemas) *types.Schemas {
+	return schemas.
+		AddMapperForType(&Version, v1beta1.Config{},
+			mapper.Drop{Field: "namespace"},
+		)
+}
 
 func serviceTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.
@@ -42,9 +57,7 @@ func serviceTypes(schemas *types.Schemas) *types.Schemas {
 		).
 		AddMapperForType(&Version, v1beta1.Service{},
 			mapper.Drop{Field: "namespace"},
-		).
-		MustImport(&Version, v1beta1.Service{}).
-		MustImport(&Version, v1beta1.InternalStack{})
+		)
 }
 
 func stackTypes(schemas *types.Schemas) *types.Schemas {

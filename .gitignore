@@ -9,4 +9,5 @@
 /image/go_build_agent
 /image/main.squashfs
 /image/root
+/package/rio
 /trash.lock

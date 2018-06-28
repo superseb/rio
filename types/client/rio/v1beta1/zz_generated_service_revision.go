@@ -35,8 +35,6 @@ const (
 	ServiceRevisionFieldScale                  = "scale"
 	ServiceRevisionFieldScaleStatus            = "scaleStatus"
 	ServiceRevisionFieldSidecars               = "sidecars"
-	ServiceRevisionFieldSpaceID                = "spaceId"
-	ServiceRevisionFieldStackID                = "stackId"
 	ServiceRevisionFieldState                  = "state"
 	ServiceRevisionFieldStopGracePeriodSeconds = "stopGracePeriod"
 	ServiceRevisionFieldTmpfs                  = "tmpfs"
@@ -85,8 +83,6 @@ type ServiceRevision struct {
 	Scale                  int64                    `json:"scale,omitempty" yaml:"scale,omitempty"`
 	ScaleStatus            *ScaleStatus             `json:"scaleStatus,omitempty" yaml:"scaleStatus,omitempty"`
 	Sidecars               map[string]SidecarConfig `json:"sidecars,omitempty" yaml:"sidecars,omitempty"`
-	SpaceID                string                   `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
-	StackID                string                   `json:"stackId,omitempty" yaml:"stackId,omitempty"`
 	State                  string                   `json:"state,omitempty" yaml:"state,omitempty"`
 	StopGracePeriodSeconds *int64                   `json:"stopGracePeriod,omitempty" yaml:"stopGracePeriod,omitempty"`
 	Tmpfs                  []Tmpfs                  `json:"tmpfs,omitempty" yaml:"tmpfs,omitempty"`

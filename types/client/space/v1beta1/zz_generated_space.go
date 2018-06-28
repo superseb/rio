@@ -27,6 +27,7 @@ type Space struct {
 	TransitioningMessage string            `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
 	UUID                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 }
+
 type SpaceCollection struct {
 	types.Collection
 	Data   []Space `json:"data,omitempty"`

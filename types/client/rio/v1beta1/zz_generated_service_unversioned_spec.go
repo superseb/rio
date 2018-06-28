@@ -31,8 +31,6 @@ const (
 	ServiceUnversionedSpecFieldRestartPolicy          = "restart"
 	ServiceUnversionedSpecFieldScale                  = "scale"
 	ServiceUnversionedSpecFieldSidecars               = "sidecars"
-	ServiceUnversionedSpecFieldSpaceID                = "spaceId"
-	ServiceUnversionedSpecFieldStackID                = "stackId"
 	ServiceUnversionedSpecFieldStopGracePeriodSeconds = "stopGracePeriod"
 	ServiceUnversionedSpecFieldTmpfs                  = "tmpfs"
 	ServiceUnversionedSpecFieldTty                    = "tty"
@@ -73,8 +71,6 @@ type ServiceUnversionedSpec struct {
 	RestartPolicy          string                   `json:"restart,omitempty" yaml:"restart,omitempty"`
 	Scale                  int64                    `json:"scale,omitempty" yaml:"scale,omitempty"`
 	Sidecars               map[string]SidecarConfig `json:"sidecars,omitempty" yaml:"sidecars,omitempty"`
-	SpaceID                string                   `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
-	StackID                string                   `json:"stackId,omitempty" yaml:"stackId,omitempty"`
 	StopGracePeriodSeconds *int64                   `json:"stopGracePeriod,omitempty" yaml:"stopGracePeriod,omitempty"`
 	Tmpfs                  []Tmpfs                  `json:"tmpfs,omitempty" yaml:"tmpfs,omitempty"`
 	Tty                    bool                     `json:"tty,omitempty" yaml:"tty,omitempty"`

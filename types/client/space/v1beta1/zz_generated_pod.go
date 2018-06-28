@@ -101,6 +101,7 @@ type Pod struct {
 	UUID                          string                 `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 	Volumes                       []Volume               `json:"volumes,omitempty" yaml:"volumes,omitempty"`
 }
+
 type PodCollection struct {
 	types.Collection
 	Data   []Pod `json:"data,omitempty"`

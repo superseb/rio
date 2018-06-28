@@ -37,6 +37,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&StackList{},
 		&Service{},
 		&ServiceList{},
+		&Config{},
+		&ConfigList{},
+		&Volume{},
+		&VolumeList{},
 	)
 	return nil
 }

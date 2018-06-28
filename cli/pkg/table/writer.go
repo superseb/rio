@@ -39,10 +39,10 @@ func NewWriter(values [][]string, ctx *cli.Context) *Writer {
 	t := &Writer{
 		Writer: tabwriter.NewWriter(os.Stdout, 10, 1, 3, ' ', 0),
 		funcMap: map[string]interface{}{
-			"serviceName": FormatServiceName,
-			"ago":         FormatCreated,
-			"json":        FormatJSON,
-			"yaml":        FormatYAML,
+			"stackScopedName": FormatStackScopedName,
+			"ago":             FormatCreated,
+			"json":            FormatJSON,
+			"yaml":            FormatYAML,
 		},
 	}
 	t.HeaderFormat, t.ValueFormat = SimpleFormat(values)
@@ -96,20 +96,20 @@ func (t *Writer) Write(obj interface{}) {
 	}
 
 	if t.ValueFormat == "json" {
-		content, err := json.Marshal(obj)
+		content, err := FormatJSON(obj)
 		t.err = err
 		if t.err != nil {
 			return
 		}
-		_, t.err = t.Writer.Write(append(content, byte('\n')))
+		_, t.err = t.Writer.Write([]byte(content + "\n"))
 	} else if t.ValueFormat == "yaml" {
-		content, err := yaml.Marshal(obj)
+		content, err := FormatYAML(obj)
 		t.err = err
 		if t.err != nil {
 			return
 		}
 		t.Writer.Write([]byte("---\n"))
-		_, t.err = t.Writer.Write(append(content, byte('\n')))
+		_, t.err = t.Writer.Write([]byte(content + "\n"))
 	} else {
 		t.err = t.printTemplate(t.Writer, t.ValueFormat, obj)
 	}
@@ -135,7 +135,7 @@ func (t *Writer) printTemplate(out io.Writer, templateContent string, obj interf
 	return tmpl.Execute(out, obj)
 }
 
-func FormatServiceName(data, data2 interface{}) (string, error) {
+func FormatStackScopedName(data, data2 interface{}) (string, error) {
 	stackName, ok := data.(string)
 	if !ok {
 		return "", nil

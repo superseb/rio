@@ -2,40 +2,42 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/base64"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
+	"sync"
+	"time"
 
-	"github.com/containerd/containerd/cmd/containerd/command"
+	"os/exec"
+
 	"github.com/coreos/flannel"
+	"github.com/gorilla/websocket"
+	"github.com/pkg/errors"
 	"github.com/rancher/norman/signal"
+	proxy2 "github.com/rancher/rancher/pkg/clusterrouter/proxy"
+	"github.com/rancher/rancher/pkg/remotedialer"
+	"github.com/rancher/rio/agent/containerd"
 	"github.com/rancher/rio/pkg/clientaccess"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/cmd/agent"
-
-	_ "github.com/containerd/containerd/diff/walking/plugin"
-	_ "github.com/containerd/containerd/gc/scheduler"
-	_ "github.com/containerd/containerd/services/containers"
-	_ "github.com/containerd/containerd/services/content"
-	_ "github.com/containerd/containerd/services/diff"
-	_ "github.com/containerd/containerd/services/events"
-	_ "github.com/containerd/containerd/services/healthcheck"
-	_ "github.com/containerd/containerd/services/images"
-	_ "github.com/containerd/containerd/services/introspection"
-	_ "github.com/containerd/containerd/services/leases"
-	_ "github.com/containerd/containerd/services/namespaces"
-	_ "github.com/containerd/containerd/services/snapshots"
-	_ "github.com/containerd/containerd/services/tasks"
-	_ "github.com/containerd/containerd/services/version"
-
-	_ "github.com/containerd/containerd/linux"
-	_ "github.com/containerd/containerd/metrics/cgroups"
-	_ "github.com/containerd/containerd/snapshots/native"
-	_ "github.com/containerd/containerd/snapshots/overlay"
-
-	_ "github.com/containerd/cri"
 )
+
+type AgentConfig struct {
+	Config      *agent.AgentConfig
+	CACerts     []byte
+	TargetHost  string
+	Certificate *tls.Certificate
+}
 
 func main() {
 	if err := run(); err != nil {
@@ -46,22 +48,143 @@ func main() {
 func run() error {
 	ctx := signal.SigTermCancelContext(context.Background())
 
-	runContainerd()
+	localURL, err := url.Parse("https://127.0.0.1:6444")
+	if err != nil {
+		panic(err)
+	}
 
-	agentConfig, err := getConfig()
+	containerd.Run()
+
+	var agentConfig *AgentConfig
+	for {
+		agentConfig, err = getConfig(localURL)
+		if err != nil {
+			logrus.Error(err)
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		break
+	}
+
+	if err := runTunnel(agentConfig); err != nil {
+		return err
+	}
+
+	if err := runProxy(agentConfig); err != nil {
+		return err
+	}
+
+	if err := agent.Agent(agentConfig.Config); err != nil {
+		return err
+	}
+
+	if err := runFlannel(agentConfig.Config); err != nil {
+		return err
+	}
+
+	//if err := runEnvoy(); err != nil {
+	//	return err
+	//}
+
+	<-ctx.Done()
+	return nil
+}
+
+func runEnvoy() error {
+	go func() {
+		cmd := exec.Command("envoy",
+			"--v2-config-only",
+			"-l",
+			"info",
+			"-c",
+			"/etc/envoy/envoy.yaml",
+			"--service-cluster",
+			"cluster",
+			"--service-node",
+			"localhost")
+		cmd.Stderr = os.Stderr
+		cmd.Stdout = os.Stdout
+		err := cmd.Run()
+		logrus.Fatalf("envoy exited: %v", err)
+	}()
+
+	return nil
+}
+
+func runTunnel(config *AgentConfig) error {
+	restConfig, err := clientcmd.BuildConfigFromFlags("", config.Config.KubeConfig)
 	if err != nil {
 		return err
 	}
 
-	if err := agent.Agent(agentConfig); err != nil {
+	transportConfig, err := restConfig.TransportConfig()
+	if err != nil {
 		return err
 	}
 
-	if err := runFlannel(agentConfig); err != nil {
+	wsURL := fmt.Sprintf("wss://%s/v1beta1/connect", config.TargetHost)
+	headers := map[string][]string{
+		"X-Rio-NodeName": {config.Config.NodeName},
+	}
+	ws := &websocket.Dialer{}
+
+	if len(config.CACerts) > 0 {
+		pool := x509.NewCertPool()
+		pool.AppendCertsFromPEM(config.CACerts)
+		ws.TLSClientConfig = &tls.Config{
+			RootCAs: pool,
+		}
+	}
+
+	if transportConfig.Username != "" {
+		auth := transportConfig.Username + ":" + transportConfig.Password
+		auth = base64.StdEncoding.EncodeToString([]byte(auth))
+		headers["Authorization"] = []string{"Basic " + auth}
+	}
+
+	once := sync.Once{}
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	go func() {
+		for {
+			logrus.Infof("Connecting to %s", wsURL)
+			remotedialer.ClientConnect(wsURL, http.Header(headers), ws, func(proto, address string) bool {
+				_, port, err := net.SplitHostPort(address)
+				return err != nil && proto == "tcp" && port == "10250"
+			}, func(_ context.Context) error {
+				once.Do(wg.Done)
+				return nil
+			})
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
+	wg.Wait()
+	return nil
+}
+
+func runProxy(config *AgentConfig) error {
+	proxy, err := proxy2.NewSimpleProxy(config.TargetHost, config.CACerts)
+	if err != nil {
 		return err
 	}
 
-	<-ctx.Done()
+	listener, err := tls.Listen("tcp", "127.0.0.1:6444", &tls.Config{
+		Certificates: []tls.Certificate{
+			*config.Certificate,
+		},
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "Failed to start tls listener")
+	}
+
+	go func() {
+		err := http.Serve(listener, proxy)
+		logrus.Fatalf("TLS proxy stopped: %v", err)
+	}()
+
 	return nil
 }
 
@@ -77,25 +200,15 @@ func runFlannel(config *agent.AgentConfig) error {
 	return nil
 }
 
-func runContainerd() {
-	args := []string{
-		"containerd",
-		"-a", "/run/rio/containerd.sock",
-		"--state", "/run/rio/containerd",
-	}
-	app := command.App()
-	go func() {
-		if err := app.Run(args); err != nil {
-			fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
-			os.Exit(1)
-		}
-	}()
-}
-
-func getConfig() (*agent.AgentConfig, error) {
+func getConfig(localURL *url.URL) (*AgentConfig, error) {
 	u := os.Getenv("RIO_URL")
 	if u == "" {
 		return nil, fmt.Errorf("RIO_URL env var is required")
+	}
+
+	uParsed, err := url.Parse(u)
+	if err != nil {
+		return nil, fmt.Errorf("RIO_URL [%s] is invalid: %v", u, err)
 	}
 
 	t := os.Getenv("RIO_TOKEN")
@@ -107,17 +220,45 @@ func getConfig() (*agent.AgentConfig, error) {
 	if dataDir == "" {
 		return nil, fmt.Errorf("RIO_DATA_DIR is required")
 	}
+	os.MkdirAll(dataDir, 0700)
 
 	kubeConfig := filepath.Join(dataDir, "kubeconfig.yaml")
 
 	_, cidr, _ := net.ParseCIDR("10.42.0.0/16")
 
-	agentConfig := &agent.AgentConfig{
-		ClusterCIDR:   *cidr,
-		KubeConfig:    kubeConfig,
-		RuntimeSocket: "/run/rio/containerd.sock",
-		CNIBinDir:     "/usr/share/cni",
+	cacerts, tlsCert, err := clientaccess.AgentAccessInfoToKubeConfig(kubeConfig, u, t, localURL)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get access info")
 	}
 
-	return agentConfig, clientaccess.AccessInfoToKubeConfig(kubeConfig, u, t)
+	clientCABytes := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: tlsCert.Certificate[1],
+	})
+	clientCA := filepath.Join(dataDir, "client-ca.pem")
+	if err := ioutil.WriteFile(clientCA, clientCABytes, 0600); err != nil {
+		return nil, errors.Wrapf(err, "failed to write client CA")
+	}
+
+	nodeName, err := os.Hostname()
+	if err != nil {
+		return nil, err
+	}
+
+	nodeName = strings.Split(nodeName, ".")[0]
+
+	return &AgentConfig{
+		Config: &agent.AgentConfig{
+			NodeName:      nodeName,
+			ClusterCIDR:   *cidr,
+			KubeConfig:    kubeConfig,
+			RuntimeSocket: "/run/rio/containerd.sock",
+			CNIBinDir:     "/usr/share/cni",
+			CACertPath:    clientCA,
+			ListenAddress: "127.0.0.1",
+		},
+		CACerts:     cacerts,
+		TargetHost:  uParsed.Host,
+		Certificate: tlsCert,
+	}, err
 }

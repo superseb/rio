@@ -11,18 +11,22 @@ import (
 )
 
 type Rm struct {
-	Type string `desc:"delete specific type"`
+	T_Type string `desc:"delete specific type"`
 }
 
 func (r *Rm) Run(app *cli.Context) error {
+	types := []string{client.ServiceType, client.StackType, client.ConfigType, client.VolumeType}
+	if len(r.T_Type) > 0 {
+		types = []string{r.T_Type}
+	}
+
+	return Remove(app, types...)
+}
+
+func Remove(app *cli.Context, types ...string) error {
 	ctx, err := server.NewContext(app)
 	if err != nil {
 		return err
-	}
-
-	types := []string{client.ServiceType, client.StackType}
-	if len(r.Type) > 0 {
-		types = []string{r.Type}
 	}
 
 	w, err := waiter.NewWaiter(app)

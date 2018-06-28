@@ -6,14 +6,17 @@ import (
 
 const (
 	StackType                      = "stack"
+	StackFieldAdditionalFiles      = "additionalFiles"
+	StackFieldAnswers              = "answers"
 	StackFieldCreated              = "created"
 	StackFieldDescription          = "description"
 	StackFieldLabels               = "labels"
 	StackFieldName                 = "name"
+	StackFieldQuestions            = "questions"
 	StackFieldRemoved              = "removed"
 	StackFieldSpaceID              = "spaceId"
 	StackFieldState                = "state"
-	StackFieldTemplates            = "templates"
+	StackFieldTemplate             = "template"
 	StackFieldTransitioning        = "transitioning"
 	StackFieldTransitioningMessage = "transitioningMessage"
 	StackFieldUUID                 = "uuid"
@@ -21,18 +24,22 @@ const (
 
 type Stack struct {
 	types.Resource
+	AdditionalFiles      map[string]string `json:"additionalFiles,omitempty" yaml:"additionalFiles,omitempty"`
+	Answers              map[string]string `json:"answers,omitempty" yaml:"answers,omitempty"`
 	Created              string            `json:"created,omitempty" yaml:"created,omitempty"`
 	Description          string            `json:"description,omitempty" yaml:"description,omitempty"`
 	Labels               map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Name                 string            `json:"name,omitempty" yaml:"name,omitempty"`
+	Questions            []Question        `json:"questions,omitempty" yaml:"questions,omitempty"`
 	Removed              string            `json:"removed,omitempty" yaml:"removed,omitempty"`
 	SpaceID              string            `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
 	State                string            `json:"state,omitempty" yaml:"state,omitempty"`
-	Templates            map[string]string `json:"templates,omitempty" yaml:"templates,omitempty"`
+	Template             string            `json:"template,omitempty" yaml:"template,omitempty"`
 	Transitioning        string            `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
 	TransitioningMessage string            `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
 	UUID                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 }
+
 type StackCollection struct {
 	types.Collection
 	Data   []Stack `json:"data,omitempty"`

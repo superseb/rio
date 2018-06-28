@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/norman/clientbase"
+	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/lookup"
 	"github.com/rancher/rio/cli/pkg/table"
 	"github.com/rancher/rio/cli/pkg/waiter"
@@ -73,14 +74,19 @@ func stackLs(app *cli.Context) error {
 		return err
 	}
 
-	collection, err := ctx.Client.Stack.List(nil)
+	collection, err := ctx.Client.Stack.List(util.DefaultListOpts())
 	if err != nil {
 		return err
 	}
 
+	//sort.Slice(collection.Data, func(i, j int) bool {
+	//	return collection.Data[i].Created > collection.Data[j].Created
+	//})
+
 	writer := table.NewWriter([][]string{
 		{"NAME", "Stack.Name"},
 		{"STATE", "Stack.State"},
+		{"CREATED", "{{.Stack.Created | ago}}"},
 		{"DESC", "Stack.Description"},
 		{"DETAIL", "Stack.TransitioningMessage"},
 	}, app)

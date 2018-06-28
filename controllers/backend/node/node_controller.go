@@ -2,8 +2,11 @@ package node
 
 import (
 	"context"
+	"sort"
 	"time"
 
+	"github.com/rancher/norman/condition"
+	"github.com/rancher/norman/types/slice"
 	"github.com/rancher/rancher/pkg/controllers/user/approuter"
 	"github.com/rancher/rancher/pkg/ticker"
 	"github.com/rancher/rio/pkg/settings"
@@ -44,6 +47,7 @@ type nodeController struct {
 	rdnsClient     *approuter.Client
 	nodeLister     v1.NodeLister
 	nodeController v1.NodeController
+	appliedDomains []string
 }
 
 func (n *nodeController) sync(key string, node *corev1.Node) error {
@@ -59,19 +63,19 @@ func (n *nodeController) sync(key string, node *corev1.Node) error {
 	ips, err := n.collectIPs()
 	if err != nil {
 		return err
-	}
 
-	if len(ips) == 0 {
+	}
+	if len(ips) == 0 || slice.StringsEqual(ips, n.appliedDomains) {
 		return nil
 	}
-
-	ips = []string{"127.0.0.1"}
 
 	_, fdqn, err := n.rdnsClient.ApplyDomain(ips)
 	if err != nil {
 		return err
 	}
+
 	settings.ClusterDomain.Set(fdqn)
+	n.appliedDomains = ips
 
 	return nil
 }
@@ -101,10 +105,12 @@ func (n *nodeController) collectIPs() ([]string, error) {
 			}
 		}
 
-		if nodeIP != "" {
+		if nodeIP != "" && condition.Cond(corev1.NodeReady).IsTrue(node) {
 			ips = append(ips, nodeIP)
 		}
 	}
+
+	sort.Strings(ips)
 
 	return ips, nil
 }

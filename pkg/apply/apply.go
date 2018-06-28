@@ -7,8 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"encoding/json"
-
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/runconduit/conduit/cli/cmd"
 	"github.com/sirupsen/logrus"
@@ -82,10 +81,13 @@ func execApply(ns string, whitelist map[string]bool, content []byte, groupID str
 
 func constructApplyData(objects []runtime.Object, groupID string, generation int64) (string, map[string]bool, []byte, error) {
 	buffer := &bytes.Buffer{}
-	encoder := json.NewEncoder(buffer)
 	whitelist := map[string]bool{}
 	ns := ""
-	for _, obj := range objects {
+	for i, obj := range objects {
+		if i > 0 {
+			buffer.WriteString("\n---\n")
+		}
+
 		objType, err := meta.TypeAccessor(obj)
 		if err != nil {
 			return "", nil, nil, fmt.Errorf("resource type data can not be accessed")
@@ -112,10 +114,12 @@ func constructApplyData(objects []runtime.Object, groupID string, generation int
 			gvk = "/" + gvk
 		}
 		whitelist[gvk] = true
-		if err := encoder.Encode(obj); err != nil {
+
+		bytes, err := yaml.Marshal(obj)
+		if err != nil {
 			return "", nil, nil, errors.Wrapf(err, "failed to encode %s/%s/%s/%s", objType.GetAPIVersion(), objType.GetKind(), metaObj.GetNamespace(), metaObj.GetName())
 		}
-		buffer.WriteString("\n---\n")
+		buffer.Write(bytes)
 	}
 
 	return ns, whitelist, buffer.Bytes(), nil

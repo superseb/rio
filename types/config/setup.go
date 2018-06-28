@@ -9,6 +9,8 @@ import (
 	"github.com/rancher/norman/store/proxy"
 	normantypes "github.com/rancher/norman/types"
 	"github.com/rancher/rio/api/named"
+	"github.com/rancher/rio/api/pretty"
+	"github.com/rancher/rio/api/resetstack"
 	"github.com/rancher/rio/api/space"
 	"github.com/rancher/rio/api/stack"
 	"github.com/rancher/rio/types"
@@ -23,6 +25,8 @@ func SetupTypes(ctx context.Context, context *types.Context) error {
 	factory.BatchCreateCRDs(ctx, normantypes.DefaultStorageContext, context.Schemas,
 		&schema.Version,
 		client.ServiceType,
+		client.ConfigType,
+		client.VolumeType,
 		client.StackType)
 	factory.BatchCreateCRDs(ctx, normantypes.DefaultStorageContext, context.Schemas,
 		&spaceSchema.Version,
@@ -32,7 +36,9 @@ func SetupTypes(ctx context.Context, context *types.Context) error {
 	setupSpaces(ctx, factory.ClientGetter, context)
 	setupNodes(ctx, factory.ClientGetter, context)
 	setupPods(ctx, factory.ClientGetter, context)
-	setupServices(ctx, context)
+	setupService(ctx, context)
+	setupConfig(ctx, context)
+	setupVolume(ctx, context)
 	setupStacks(ctx, context)
 
 	subscribe.Register(&builtin.Version, context.Schemas)
@@ -42,17 +48,27 @@ func SetupTypes(ctx context.Context, context *types.Context) error {
 	return nil
 }
 
-func setupServices(ctx context.Context, rContext *types.Context) {
-	ef := &stack.ExportFormatter{}
+func setupService(ctx context.Context, rContext *types.Context) {
 	s := rContext.Schemas.Schema(&schema.Version, client.ServiceType)
-	s.Formatter = ef.FormatService
-	s.Store = named.New(s.Store)
+	s.Formatter = pretty.Format
+	s.InputFormatter = pretty.InputFormatter
+	s.Store = resetstack.New(named.New(s.Store))
+}
+
+func setupConfig(ctx context.Context, rContext *types.Context) {
+	s := rContext.Schemas.Schema(&schema.Version, client.ConfigType)
+	s.Store = resetstack.New(named.New(s.Store))
+}
+
+func setupVolume(ctx context.Context, rContext *types.Context) {
+	s := rContext.Schemas.Schema(&schema.Version, client.VolumeType)
+	s.Store = resetstack.New(named.New(s.Store))
 }
 
 func setupStacks(ctx context.Context, rContext *types.Context) {
-	ef := &stack.ExportFormatter{}
 	s := rContext.Schemas.Schema(&schema.Version, client.StackType)
-	s.Formatter = ef.Format
+	s.Formatter = pretty.Format
+	s.ListHandler = stack.ListHandler
 	s.Store = named.New(s.Store)
 }
 

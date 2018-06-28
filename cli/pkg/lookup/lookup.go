@@ -9,15 +9,17 @@ import (
 
 	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/norman/types"
+	"github.com/rancher/rio/cli/pkg/up/questions"
 	"github.com/rancher/rio/types/client/rio/v1beta1"
 )
 
 func Lookup(c clientbase.APIBaseClientInterface, name string, typeNames ...string) (*types.Resource, error) {
+	var result []*namedResource
 	for _, schemaType := range typeNames {
 		if strings.Contains(name, ":") && !strings.Contains(name, "/") {
 			resourceByID, err := byID(c, name, schemaType)
 			if err == nil {
-				return resourceByID, nil
+				return &resourceByID.Resource, nil
 			}
 		}
 
@@ -27,15 +29,61 @@ func Lookup(c clientbase.APIBaseClientInterface, name string, typeNames ...strin
 		}
 
 		if byName != nil {
-			return byName, nil
+			result = append(result, byName)
 		}
 	}
 
-	return nil, fmt.Errorf("not found: %s", name)
+	if len(result) == 0 {
+		return nil, fmt.Errorf("not found: %s", name)
+	}
+
+	if len(result) == 1 {
+		return &result[0].Resource, nil
+	}
+
+	for {
+		fmt.Printf("Choose resource for %s:\n", name)
+		for i, r := range result {
+			msg := fmt.Sprintf("[%d] type=%s %s(%s)", i+1, r.Type, r.Name, r.ID)
+			if len(r.Description) > 0 {
+				msg += ": " + r.Description
+			}
+			fmt.Println(msg)
+		}
+
+		ans, err := questions.Prompt("Select Number [] ", "")
+		if err != nil {
+			return nil, err
+		}
+		num, err := strconv.Atoi(ans)
+		if err != nil {
+			fmt.Printf("invalid number: %s\n", ans)
+			continue
+		}
+
+		num--
+		if num < 0 || num >= len(result) {
+			fmt.Println("Select a number between 1 and", +len(result))
+			continue
+		}
+
+		return &result[num].Resource, nil
+	}
 }
 
-func byID(c clientbase.APIBaseClientInterface, id, schemaType string) (*types.Resource, error) {
-	var resource types.Resource
+type namedResourceCollection struct {
+	types.Collection
+	Data []namedResource `json:"data,omitempty"`
+}
+
+type namedResource struct {
+	types.Resource
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+func byID(c clientbase.APIBaseClientInterface, id, schemaType string) (*namedResource, error) {
+	var resource namedResource
 
 	err := c.ByID(schemaType, id, &resource)
 	return &resource, err
@@ -47,7 +95,7 @@ func setupFilters(c clientbase.APIBaseClientInterface, name, schemaType string) 
 		"removed_null": "1",
 	}
 
-	if schemaType != client.ServiceType {
+	if schemaType == client.StackType {
 		return filters, nil
 	}
 
@@ -65,8 +113,8 @@ func setupFilters(c clientbase.APIBaseClientInterface, name, schemaType string) 
 	return filters, nil
 }
 
-func byName(c clientbase.APIBaseClientInterface, name, schemaType string) (*types.Resource, error) {
-	var collection types.ResourceCollection
+func byName(c clientbase.APIBaseClientInterface, name, schemaType string) (*namedResource, error) {
+	var collection namedResourceCollection
 
 	if schemaType == client.StackType && strings.Contains(name, "/") {
 		// stacks can't be foo/bar

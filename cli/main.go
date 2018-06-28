@@ -5,34 +5,37 @@ import (
 	"path/filepath"
 
 	"github.com/docker/docker/pkg/reexec"
+	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/rio/cli/cmd/agent"
+	"github.com/rancher/rio/cli/cmd/config"
 	"github.com/rancher/rio/cli/cmd/create"
 	"github.com/rancher/rio/cli/cmd/edit"
 	"github.com/rancher/rio/cli/cmd/exec"
 	"github.com/rancher/rio/cli/cmd/export"
+	"github.com/rancher/rio/cli/cmd/inspect"
 	"github.com/rancher/rio/cli/cmd/node"
-	"github.com/rancher/rio/cli/cmd/server"
-	"github.com/rancher/rio/cli/cmd/stage"
-	"github.com/rancher/rio/cli/cmd/up"
-	"github.com/rancher/rio/cli/cmd/weight"
-	"github.com/rancher/rio/cli/pkg/builder"
-	"github.com/rancher/rio/cli/pkg/waiter"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-
-	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/rio/cli/cmd/promote"
 	"github.com/rancher/rio/cli/cmd/ps"
 	"github.com/rancher/rio/cli/cmd/rm"
 	"github.com/rancher/rio/cli/cmd/run"
 	"github.com/rancher/rio/cli/cmd/scale"
+	"github.com/rancher/rio/cli/cmd/server"
 	"github.com/rancher/rio/cli/cmd/stack"
+	"github.com/rancher/rio/cli/cmd/stage"
+	"github.com/rancher/rio/cli/cmd/up"
+	"github.com/rancher/rio/cli/cmd/volume"
+	"github.com/rancher/rio/cli/cmd/weight"
+	"github.com/rancher/rio/cli/pkg/builder"
+	"github.com/rancher/rio/cli/pkg/waiter"
 	_ "github.com/rancher/rio/pkg/conduit"
 	_ "github.com/rancher/rio/pkg/kubectl"
+	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli"
 )
 
 var (
 	appName = filepath.Base(os.Args[0])
+	Version = "dev"
 )
 
 func main() {
@@ -41,7 +44,9 @@ func main() {
 	}
 
 	app := cli.NewApp()
+	app.Name = appName
 	app.Usage = "Containers as simple as they should be"
+	app.Version = Version
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
@@ -74,6 +79,8 @@ func main() {
 
 	app.Commands = []cli.Command{
 		stack.Stack(),
+		config.Config(app),
+		volume.Volume(app),
 		builder.Command(&ps.Ps{},
 			"List services and containers",
 			appName+" ps [OPTIONS] [STACK...]",
@@ -107,8 +114,8 @@ func main() {
 			appName+" rm ID_OR_NAME",
 			""),
 		builder.Command(&edit.Edit{},
-			"Edit a service",
-			appName+" edit SERVICE_ID_OR_NAME",
+			"Edit a service or stack",
+			appName+" edit ID_OR_NAME",
 			""),
 		builder.Command(&export.Export{},
 			"Export a stack",
@@ -129,6 +136,10 @@ func main() {
 		builder.Command(&weight.Weight{},
 			"Weight a percentage of traffic to a staged service",
 			appName+" weight [OPTIONS] [SERVICE_REVISION=PERCENTAGE...]",
+			""),
+		builder.Command(&inspect.Inspect{},
+			"Print the raw API output of a resource",
+			appName+" inspect [ID_OR_NAME...]",
 			""),
 		node.Node(),
 	}

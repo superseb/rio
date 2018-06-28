@@ -4,17 +4,15 @@ import (
 	"io"
 	"os"
 
-	"github.com/pkg/errors"
+	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/output"
 	"github.com/rancher/rio/cli/pkg/yamldownload"
 	"github.com/rancher/rio/cli/server"
-	"github.com/rancher/rio/types/client/rio/v1beta1"
 	"github.com/urfave/cli"
 )
 
 type Export struct {
 	O_Output string `desc:"Output format (yaml/json)"`
-	F_File   string `desc:"Optional file to write to instead of stdout"`
 }
 
 func (e *Export) Run(app *cli.Context) error {
@@ -34,23 +32,13 @@ func (e *Export) Run(app *cli.Context) error {
 	}
 
 	for _, arg := range args {
-		_, body, _, err := yamldownload.DownloadYAML(ctx, format, "export", arg, client.StackType, client.ServiceType)
+		_, body, _, err := yamldownload.DownloadYAML(ctx, format, "export", arg, util.ExportEditTypes...)
 		if err != nil {
 			return err
 		}
 		defer body.Close()
 
-		out := io.Writer(os.Stdout)
-		if e.F_File != "" {
-			f, err := os.Open(e.F_File)
-			if err != nil {
-				return errors.Wrapf(err, "failed to open %s", e.F_File)
-			}
-			defer f.Close()
-			out = f
-		}
-
-		_, err = io.Copy(out, body)
+		_, err = io.Copy(os.Stdout, body)
 		if err != nil {
 			return err
 		}

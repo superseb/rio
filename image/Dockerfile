@@ -1,3 +1,5 @@
+FROM envoyproxy/envoy:latest AS envoy
+
 FROM golang:1.10 AS cni
 RUN mkdir -p $GOPATH/src/github.com/containernetworking && \
     cd $GOPATH/src/github.com/containernetworking && \
@@ -39,7 +41,7 @@ RUN curl -fL -o /usr/src/image/bin/runc https://github.com/opencontainers/runc/r
 RUN chmod +x /usr/src/image/bin/runc && strip --strip-debug /usr/src/image/bin/runc
 
 RUN curl -fL -o /usr/src/containerd.tgz https://github.com/containerd/containerd/releases/download/v1.1.0/containerd-1.1.0.linux-amd64.tar.gz
-RUN tar xvf /usr/src/containerd.tgz -C /usr/src/image/bin bin/containerd-shim --strip-components=1
+RUN tar xvf /usr/src/containerd.tgz -C /usr/src/image/bin bin/containerd bin/containerd-shim --strip-components=1
 
 RUN mkdir -p /usr/src/image/share/cni/bin
 COPY --from=cni /usr/bin/cni /usr/src/image/share/cni/bin
@@ -60,6 +62,9 @@ COPY inittab /usr/src/image/etc/inittab
 
 RUN mkdir -p /usr/src/image/etc/kube-flannel
 COPY net-conf.json /usr/src/image/etc/kube-flannel/
+
+COPY envoy.yaml /etc/envoy/envoy.yaml
+COPY --from=envoy /usr/local/bin/envoy /usr/src/image/bin/envoy
 
 COPY agent /usr/src/image/bin/agent
 

@@ -3,6 +3,7 @@ package ps
 import (
 	"strings"
 
+	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/table"
 	"github.com/rancher/rio/cli/server"
 	spaceclient "github.com/rancher/rio/types/client/space/v1beta1"
@@ -28,7 +29,7 @@ func (p *Ps) containers(app *cli.Context, ctx *server.Context) error {
 		return err
 	}
 
-	pods, err := c.Pod.List(nil)
+	pods, err := c.Pod.List(util.DefaultListOpts())
 	if err != nil {
 		return err
 	}

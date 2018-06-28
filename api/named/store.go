@@ -30,10 +30,11 @@ func New(store types.Store) *Store {
 
 func (s *Store) Create(apiContext *types.APIContext, schema *types.Schema, data map[string]interface{}) (map[string]interface{}, error) {
 	var (
-		datas types.GenericCollection
+		datas []map[string]interface{}
 		err   error
 	)
 
+	stackId, _ := data["stackId"].(string)
 	name, _ := data["name"].(string)
 	gen := false
 	if name == "" {
@@ -47,17 +48,18 @@ func (s *Store) Create(apiContext *types.APIContext, schema *types.Schema, data 
 		err = access.List(apiContext, &schema.Version, schema.ID, &types.QueryOptions{
 			Conditions: []*types.QueryCondition{
 				types.EQ("name", name),
+				types.EQ("stackId", stackId),
 			},
 		}, &datas)
 		if err != nil {
 			return nil, err
 		}
-		if !gen || len(datas.Data) == 0 {
+		if !gen || len(datas) == 0 {
 			break
 		}
 	}
 
-	if len(datas.Data) > 0 {
+	if len(datas) > 0 {
 		return nil, httperror.NewAPIError(httperror.Conflict, fmt.Sprintf("name %s is not unique", name))
 	}
 

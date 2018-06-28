@@ -13,6 +13,7 @@ import (
 
 	"github.com/pkg/errors"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/client-go/util/cert"
 	"k8s.io/kubernetes/staging/src/k8s.io/client-go/tools/clientcmd"
 )
 
@@ -33,34 +34,66 @@ type clientToken struct {
 }
 
 func AccessInfoToKubeConfig(destFile, server, token string) error {
+	_, _, err := accessInfoToKubeConfig(destFile, server, token, nil)
+	return err
+}
+
+func AgentAccessInfoToKubeConfig(destFile, server, token string, override *url2.URL) ([]byte, *tls.Certificate, error) {
+	return accessInfoToKubeConfig(destFile, server, token, override)
+}
+
+func accessInfoToKubeConfig(destFile, server, token string, overrideURL *url2.URL) ([]byte, *tls.Certificate, error) {
 	url, err := url2.Parse(server)
 	if err != nil {
-		return errors.Wrapf(err, "Invalid RIO_URL, failed to parse %s", server)
+		return nil, nil, errors.Wrapf(err, "Invalid RIO_URL, failed to parse %s", server)
 	}
 
 	if url.Scheme != "https" {
-		return fmt.Errorf("only https:// URLs are supported, invalid scheme: %s", server)
+		return nil, nil, fmt.Errorf("only https:// URLs are supported, invalid scheme: %s", server)
 	}
 
 	parsedToken, err := parseToken(token)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	cacerts, err := getCACerts(url)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if ok, hash, newHash := validateCACerts(cacerts, parsedToken.caHash); !ok {
-		return fmt.Errorf("RIO_TOKEN does not match the server %s != %s", hash, newHash)
+		return nil, nil, fmt.Errorf("RIO_TOKEN does not match the server %s != %s", hash, newHash)
 	}
 
 	if err := validateToken(url, cacerts, parsedToken.username, parsedToken.password); err != nil {
-		return err
+		return nil, nil, err
 	}
 
-	return writeKubeConfig(destFile, url, cacerts, parsedToken.username, parsedToken.password)
+	if overrideURL == nil {
+		return nil, nil, writeKubeConfig(destFile, url, cacerts, parsedToken.username, parsedToken.password)
+	}
+
+	nodeCert, nodeKey, err := getNodeCertKey(url, parsedToken.username, parsedToken.password, cacerts)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	certs, err := cert.ParseCertsPEM(nodeCert)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to parse node cert")
+	}
+	if len(certs) < 2 {
+		return nil, nil, fmt.Errorf("expected node cert to end with CA cert, length found %d", len(certs))
+	}
+
+	err = writeKubeConfig(destFile, overrideURL, cert.EncodeCertPEM(certs[1]), parsedToken.username, parsedToken.password)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "Failed to write to kubeconfig %s", destFile)
+	}
+
+	tlsCert, err := tls.X509KeyPair(nodeCert, nodeKey)
+	return cacerts, &tlsCert, err
 }
 
 func writeKubeConfig(kubeconfig string, u *url2.URL, cacerts []byte, username, password string) error {
@@ -143,11 +176,31 @@ func getHTTPClient(cacerts []byte) *http.Client {
 
 	return &http.Client{
 		Transport: &http.Transport{
+			DisableKeepAlives: true,
 			TLSClientConfig: &tls.Config{
 				RootCAs: pool,
 			},
 		},
 	}
+}
+
+func getNodeCertKey(u *url2.URL, username, password string, cacerts []byte) ([]byte, []byte, error) {
+	u.Path = "/node.crt"
+	url := u.String()
+
+	nodeCert, err := get(url, getHTTPClient(cacerts), username, password)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to download node cert")
+	}
+
+	u.Path = "/node.key"
+	url = u.String()
+	nodeKey, err := get(url, getHTTPClient(cacerts), username, password)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to download node cert")
+	}
+
+	return nodeCert, nodeKey, nil
 }
 
 func getCACerts(u *url2.URL) ([]byte, error) {

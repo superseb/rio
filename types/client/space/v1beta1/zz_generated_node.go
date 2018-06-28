@@ -57,6 +57,7 @@ type Node struct {
 	VolumesAttached      []AttachedVolume     `json:"volumesAttached,omitempty" yaml:"volumesAttached,omitempty"`
 	VolumesInUse         []string             `json:"volumesInUse,omitempty" yaml:"volumesInUse,omitempty"`
 }
+
 type NodeCollection struct {
 	types.Collection
 	Data   []Node `json:"data,omitempty"`

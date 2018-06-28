@@ -5,10 +5,12 @@ import (
 
 	"github.com/rancher/rio/pkg/apply"
 	"github.com/rancher/rio/pkg/namespace"
+	template2 "github.com/rancher/rio/pkg/template"
 	"github.com/rancher/rio/types"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"github.com/rancher/types/apis/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -46,7 +48,7 @@ func (s *stackController) Updated(stack *v1beta1.Stack) (*v1beta1.Stack, error) 
 		return stack, err
 	}
 
-	internalStack, err := s.parseServices(stack)
+	internalStack, err := s.parseStack(stack)
 	if err != nil {
 		// if parsing fails we don't return err because it's a user error
 		return stack, nil
@@ -56,4 +58,24 @@ func (s *stackController) Updated(stack *v1beta1.Stack) (*v1beta1.Stack, error) 
 
 	err = apply.Apply(objects, "stack-"+stack.Name, stack.Generation)
 	return stack, err
+}
+
+func (s *stackController) parseStack(stack *v1beta1.Stack) (*v1beta1.InternalStack, error) {
+	var internalStack *v1beta1.InternalStack
+
+	_, err := v1beta1.StackConditionParsed.Do(stack, func() (runtime.Object, error) {
+		t, err := template2.FromStack(stack)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := t.Validate(); err != nil {
+			return nil, err
+		}
+
+		internalStack, err = t.ToInternalStack()
+		return nil, err
+	})
+
+	return internalStack, err
 }

@@ -1,10 +1,9 @@
 package server
 
 import (
-	"strings"
-
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/clientbase"
@@ -25,13 +24,13 @@ type Context struct {
 func NewContext(app *cli.Context) (*Context, error) {
 	c, err := client.NewClient(&clientbase.ClientOpts{
 		Insecure: true,
-		URL:      "https://localhost:7443/v1beta1-rio/spaces/default",
+		URL:      "https://localhost:5443/v1beta1-rio/spaces/default",
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest(http.MethodGet, "https://localhost:7443/domain", nil)
+	req, err := http.NewRequest(http.MethodGet, "https://localhost:5443/domain", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func NewContext(app *cli.Context) (*Context, error) {
 func (c *Context) SpaceClient() (*spaceclient.Client, error) {
 	return spaceclient.NewClient(&clientbase.ClientOpts{
 		Insecure: true,
-		URL:      "https://localhost:7443/v1beta1-rio",
+		URL:      "https://localhost:5443/v1beta1-rio",
 	})
 }
 

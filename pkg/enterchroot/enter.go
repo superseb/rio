@@ -93,6 +93,11 @@ func Mount(dataDir string) error {
 }
 
 func findRoot() (string, uint64, error) {
+	root := os.Getenv("ENTER_ROOT")
+	if root != "" {
+		return root, 0, nil
+	}
+
 	for _, suffix := range []string{".root", ".squashfs"} {
 		test := os.Args[0] + suffix
 		if _, err := os.Stat(test); err == nil {

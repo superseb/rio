@@ -1,12 +1,18 @@
 package client
 
 const (
-	StackSpecType             = "stackSpec"
-	StackSpecFieldDescription = "description"
-	StackSpecFieldTemplates   = "templates"
+	StackSpecType                 = "stackSpec"
+	StackSpecFieldAdditionalFiles = "additionalFiles"
+	StackSpecFieldAnswers         = "answers"
+	StackSpecFieldDescription     = "description"
+	StackSpecFieldQuestions       = "questions"
+	StackSpecFieldTemplate        = "template"
 )
 
 type StackSpec struct {
-	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
-	Templates   map[string]string `json:"templates,omitempty" yaml:"templates,omitempty"`
+	AdditionalFiles map[string]string `json:"additionalFiles,omitempty" yaml:"additionalFiles,omitempty"`
+	Answers         map[string]string `json:"answers,omitempty" yaml:"answers,omitempty"`
+	Description     string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Questions       []Question        `json:"questions,omitempty" yaml:"questions,omitempty"`
+	Template        string            `json:"template,omitempty" yaml:"template,omitempty"`
 }

@@ -1,0 +1,27 @@
+admin:
+  access_log_path: /dev/stderr
+  address:
+    socket_address:
+      address: 127.0.0.1
+      port_value: 19000
+dynamic_resources:
+  ads_config:
+    api_type: GRPC
+    cluster_names:
+    - xds_cluster
+  cds_config:
+    ads: {}
+  lds_config:
+    ads: {}
+node:
+  cluster: cluster
+  id: localhost
+static_resources:
+  clusters:
+  - connect_timeout: 1s
+    hosts:
+    - socket_address:
+        address: 127.0.0.1
+        port_value: 5678
+    http2_protocol_options: {}
+    name: xds_cluster
