@@ -70,12 +70,15 @@ func execApply(ns string, whitelist map[string]bool, content []byte, groupID str
 	cmd.Stderr = errOutput
 
 	if err := cmd.Run(); err != nil {
-		return errors.Wrapf(err, "failed to apply: %s, input: %s", errOutput.String(), string(content))
+		logrus.Errorf("Failed to apply %s: %s, input: %s", errOutput.String(), string(content))
+
+		return fmt.Errorf("failed to apply: %s", errOutput.String())
 	}
 
 	if logrus.GetLevel() <= logrus.DebugLevel {
 		fmt.Printf("Applied: %s", output.String())
 	}
+
 	return nil
 }
 

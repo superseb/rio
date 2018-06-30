@@ -10,6 +10,7 @@ import (
 var (
 	StackConditionNamespaceCreated = condition.Cond("NamespaceCreated")
 	StackConditionParsed           = condition.Cond("Parsed")
+	StackConditionDeployed         = condition.Cond("Deployed")
 )
 
 type Stack struct {

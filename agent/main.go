@@ -12,15 +12,18 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
-	"os/exec"
-
 	"github.com/coreos/flannel"
+	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
+	"github.com/kubernetes-incubator/external-storage/local-volume/provisioner/pkg/common"
+	"github.com/kubernetes-incubator/external-storage/local-volume/provisioner/pkg/controller"
+	"github.com/kubernetes-incubator/external-storage/local-volume/provisioner/pkg/deleter"
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/signal"
 	proxy2 "github.com/rancher/rancher/pkg/clusterrouter/proxy"
@@ -28,15 +31,19 @@ import (
 	"github.com/rancher/rio/agent/containerd"
 	"github.com/rancher/rio/pkg/clientaccess"
 	"github.com/sirupsen/logrus"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/kubernetes/cmd/agent"
 )
 
 type AgentConfig struct {
-	Config      *agent.AgentConfig
-	CACerts     []byte
-	TargetHost  string
-	Certificate *tls.Certificate
+	LocalVolumeDir string
+	Config         *agent.AgentConfig
+	CACerts        []byte
+	TargetHost     string
+	Certificate    *tls.Certificate
 }
 
 func main() {
@@ -86,8 +93,52 @@ func run() error {
 	//	return err
 	//}
 
+	if err := runLocalStorage(agentConfig); err != nil {
+		return err
+	}
+
 	<-ctx.Done()
 	return nil
+}
+
+func runLocalStorage(config *AgentConfig) error {
+	os.Setenv("KUBECONFIG", config.Config.KubeConfig)
+
+	provisionerConfig := common.ProvisionerConfiguration{
+		StorageClassConfig: map[string]common.MountConfig{
+			"local": {
+				HostDir:  config.LocalVolumeDir,
+				MountDir: config.LocalVolumeDir,
+			},
+		},
+		MinResyncPeriod: metav1.Duration{Duration: 5 * time.Minute},
+	}
+
+	nodeName := config.Config.NodeName
+
+	client := common.SetupClient()
+	node := getNode(client, nodeName)
+
+	glog.Info("Starting controller\n")
+	procTable := deleter.NewProcTable()
+	go controller.StartLocalController(client, procTable, &common.UserConfig{
+		Node:              node,
+		DiscoveryMap:      provisionerConfig.StorageClassConfig,
+		NodeLabelsForPV:   provisionerConfig.NodeLabelsForPV,
+		UseAlphaAPI:       provisionerConfig.UseAlphaAPI,
+		UseJobForCleaning: provisionerConfig.UseJobForCleaning,
+		MinResyncPeriod:   provisionerConfig.MinResyncPeriod,
+	})
+
+	return nil
+}
+
+func getNode(client *kubernetes.Clientset, name string) *v1.Node {
+	node, err := client.CoreV1().Nodes().Get(name, metav1.GetOptions{})
+	if err != nil {
+		glog.Fatalf("Could not get node information: %v", err)
+	}
+	return node
 }
 
 func runEnvoy() error {
@@ -248,6 +299,7 @@ func getConfig(localURL *url.URL) (*AgentConfig, error) {
 	nodeName = strings.Split(nodeName, ".")[0]
 
 	return &AgentConfig{
+		LocalVolumeDir: filepath.Join(dataDir, "local"),
 		Config: &agent.AgentConfig{
 			NodeName:      nodeName,
 			ClusterCIDR:   *cidr,

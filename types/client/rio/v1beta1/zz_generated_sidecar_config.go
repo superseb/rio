@@ -6,6 +6,7 @@ const (
 	SidecarConfigFieldCapAdd                 = "capAdd"
 	SidecarConfigFieldCapDrop                = "capDrop"
 	SidecarConfigFieldCommand                = "command"
+	SidecarConfigFieldConfigs                = "configs"
 	SidecarConfigFieldDefaultVolumeDriver    = "defaultVolumeDriver"
 	SidecarConfigFieldDevices                = "devices"
 	SidecarConfigFieldEntrypoint             = "entrypoint"
@@ -32,6 +33,7 @@ type SidecarConfig struct {
 	CapAdd                 []string        `json:"capAdd,omitempty" yaml:"capAdd,omitempty"`
 	CapDrop                []string        `json:"capDrop,omitempty" yaml:"capDrop,omitempty"`
 	Command                []string        `json:"command,omitempty" yaml:"command,omitempty"`
+	Configs                []ConfigMapping `json:"configs,omitempty" yaml:"configs,omitempty"`
 	DefaultVolumeDriver    string          `json:"defaultVolumeDriver,omitempty" yaml:"defaultVolumeDriver,omitempty"`
 	Devices                []DeviceMapping `json:"devices,omitempty" yaml:"devices,omitempty"`
 	Entrypoint             []string        `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`

@@ -57,7 +57,7 @@ func (p *Ps) services(app *cli.Context, ctx *server.Context) error {
 		{"SCALE", "{{scale .Service.Scale .Service.ScaleStatus}}"},
 		{"STATE", "Service.State"},
 		{"ENDPOINT", "Endpoint"},
-		{"DETAIL", "Service.TransitioningMessage"},
+		{"DETAIL", "{{first .Service.TransitioningMessage .Stack.TransitioningMessage}}"},
 	}, app)
 	defer writer.Close()
 

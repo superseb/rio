@@ -35,6 +35,10 @@ func Config(app *cli.App) cli.Command {
 				"Remove a config",
 				app.Name+" config rm [NAME...]",
 				""),
+			builder.Command(&Update{},
+				"Update a config",
+				app.Name+" config update NAME FILE|-",
+				""),
 		},
 	}
 }

@@ -16,6 +16,8 @@ func serviceMappers() []types.Mapper {
 		pm.SingleSlice{Field: "dnsOption"},
 		pm.SingleSlice{Field: "dnsSearch"},
 		pm.Shlex{Field: "command"},
+		pm.NewConfigMapping("configs"),
+		pm.MapToSlice{Field: "configs", Sep: ":"},
 		pm.NewDeviceMapping("devices"),
 		pm.MapToSlice{Field: "devices", Sep: ":"},
 		pm.AliasField{Field: "environment", Names: []string{"env"}},

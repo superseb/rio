@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/docker/go-units"
+	"github.com/rancher/norman/types/convert"
 	"github.com/urfave/cli"
 	"gopkg.in/yaml.v2"
 )
@@ -43,6 +44,7 @@ func NewWriter(values [][]string, ctx *cli.Context) *Writer {
 			"ago":             FormatCreated,
 			"json":            FormatJSON,
 			"yaml":            FormatYAML,
+			"first":           FormatFirst,
 		},
 	}
 	t.HeaderFormat, t.ValueFormat = SimpleFormat(values)
@@ -175,4 +177,18 @@ func FormatJSON(data interface{}) (string, error) {
 func FormatYAML(data interface{}) (string, error) {
 	bytes, err := yaml.Marshal(data)
 	return string(bytes) + "\n", err
+}
+
+func FormatFirst(data, data2 interface{}) (string, error) {
+	str := convert.ToString(data)
+	if str != "" {
+		return str, nil
+	}
+
+	str = convert.ToString(data2)
+	if str != "" {
+		return str, nil
+	}
+
+	return "", nil
 }

@@ -7,6 +7,7 @@ const (
 	ServiceUnversionedSpecFieldCapAdd                 = "capAdd"
 	ServiceUnversionedSpecFieldCapDrop                = "capDrop"
 	ServiceUnversionedSpecFieldCommand                = "command"
+	ServiceUnversionedSpecFieldConfigs                = "configs"
 	ServiceUnversionedSpecFieldDNS                    = "dns"
 	ServiceUnversionedSpecFieldDNSOptions             = "dnsOptions"
 	ServiceUnversionedSpecFieldDNSSearch              = "dnsSearch"
@@ -47,6 +48,7 @@ type ServiceUnversionedSpec struct {
 	CapAdd                 []string                 `json:"capAdd,omitempty" yaml:"capAdd,omitempty"`
 	CapDrop                []string                 `json:"capDrop,omitempty" yaml:"capDrop,omitempty"`
 	Command                []string                 `json:"command,omitempty" yaml:"command,omitempty"`
+	Configs                []ConfigMapping          `json:"configs,omitempty" yaml:"configs,omitempty"`
 	DNS                    []string                 `json:"dns,omitempty" yaml:"dns,omitempty"`
 	DNSOptions             []string                 `json:"dnsOptions,omitempty" yaml:"dnsOptions,omitempty"`
 	DNSSearch              []string                 `json:"dnsSearch,omitempty" yaml:"dnsSearch,omitempty"`

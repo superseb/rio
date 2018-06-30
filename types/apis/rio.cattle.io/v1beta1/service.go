@@ -28,7 +28,7 @@ type ServiceRevision struct {
 }
 
 type ServiceUnversionedSpec struct {
-	Scale       int    `json:"scale,omitempty" norman:"type=int,default=1"`
+	Scale       int    `json:"scale,omitempty"`
 	BatchSize   int    `json:"batchSize,omitempty"`
 	UpdateOrder string `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
 
@@ -138,6 +138,7 @@ type ContainerConfig struct {
 	CPUs                   string        `json:"nanoCpus,omitempty"`
 
 	Devices []DeviceMapping `json:"devices,omitempty"` // support []string and map[string]string
+	Configs []ConfigMapping `json:"configs,omitempty"`
 }
 
 type SidecarConfig struct {

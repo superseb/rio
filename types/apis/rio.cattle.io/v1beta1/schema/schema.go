@@ -28,8 +28,14 @@ var (
 
 func volumeTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.
+		AddMapperForType(&Version, v1beta1.VolumeStatus{},
+			mapper.Drop{Field: "conditions"},
+			&mapper.Embed{Field: "pvcStatus"},
+		).
 		AddMapperForType(&Version, v1beta1.Volume{},
 			mapper.Drop{Field: "namespace"},
+			&mapper.Embed{Field: "status"},
+			mapper.Drop{Field: "phase"},
 		)
 }
 

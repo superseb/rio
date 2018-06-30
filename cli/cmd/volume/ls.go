@@ -3,6 +3,7 @@ package volume
 import (
 	"sort"
 
+	"github.com/rancher/norman/types/convert"
 	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/table"
 	"github.com/rancher/rio/cli/server"
@@ -37,13 +38,16 @@ func (l *Ls) Run(app *cli.Context) error {
 
 	writer := table.NewWriter([][]string{
 		{"NAME", "{{stackScopedName .Stack.Name .Volume.Name}}"},
-		{"DRIVER", "Volume.Driver"},
+		{"DRIVER", "{{.Volume.Driver | driver}}"},
+		{"TEMPLATE", "Volume.Template"},
 		{"SIZE GB", "Volume.SizeInGB"},
 		{"STATE", "Volume.State"},
 		{"CREATED", "{{.Volume.Created | ago}}"},
-		{"DETAIL", "Volume.TransitioningMessage"},
+		{"DETAIL", "{{first .Volume.TransitioningMessage .Stack.TransitioningMessage}}"},
 	}, app)
 	defer writer.Close()
+
+	writer.AddFormatFunc("driver", FormatDriver)
 
 	stackByID, err := util.StacksByID(ctx)
 	if err != nil {
@@ -63,4 +67,12 @@ func (l *Ls) Run(app *cli.Context) error {
 	}
 
 	return writer.Err()
+}
+
+func FormatDriver(obj interface{}) (string, error) {
+	str := convert.ToString(obj)
+	if str == "" {
+		return "default", nil
+	}
+	return str, nil
 }

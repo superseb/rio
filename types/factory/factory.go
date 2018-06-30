@@ -45,6 +45,7 @@ func Schemas(version *types.APIVersion) *types.Schemas {
 						Field:            "annotations",
 						IgnoreDefinition: true,
 					},
+					rm.Status{},
 				},
 			},
 		)

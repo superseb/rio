@@ -7,16 +7,17 @@ import (
 	"unicode/utf8"
 
 	"github.com/rancher/rio/cli/cmd/util"
+	"github.com/rancher/rio/cli/pkg/lookup"
 	"github.com/rancher/rio/cli/server"
 	"github.com/rancher/rio/types/client/rio/v1beta1"
 	"github.com/urfave/cli"
 )
 
-type Create struct {
+type Update struct {
 	L_Label map[string]string `desc:"Set meta data on a config"`
 }
 
-func (c *Create) Run(app *cli.Context) error {
+func (c *Update) Run(app *cli.Context) error {
 	ctx, err := server.NewContext(app)
 	if err != nil {
 		return err
@@ -29,9 +30,12 @@ func (c *Create) Run(app *cli.Context) error {
 	name := app.Args()[0]
 	file := app.Args()[1]
 
-	config := &client.Config{}
+	resource, err := lookup.Lookup(ctx.Client, name, client.ConfigType)
+	if err != nil {
+		return err
+	}
 
-	config.SpaceID, config.StackID, config.Name, err = ctx.ResolveSpaceStackName(name)
+	config, err := ctx.Client.Config.ByID(resource.ID)
 	if err != nil {
 		return err
 	}
@@ -41,15 +45,18 @@ func (c *Create) Run(app *cli.Context) error {
 		return err
 	}
 
-	config.Labels = c.L_Label
+	if len(c.L_Label) > 0 {
+		config.Labels = c.L_Label
+	}
 	if utf8.Valid(content) {
 		config.Content = string(content)
+		config.Encoded = false
 	} else {
 		config.Content = base64.StdEncoding.EncodeToString(content)
 		config.Encoded = true
 	}
 
-	config, err = ctx.Client.Config.Create(config)
+	config, err = ctx.Client.Config.Update(config, config)
 	if err != nil {
 		return err
 	}

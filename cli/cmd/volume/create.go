@@ -10,8 +10,10 @@ import (
 )
 
 type Create struct {
-	L_Label  map[string]string `desc:"Set meta data on a container"`
-	D_Driver string            `desc:"Volume driver to use" default:"local"`
+	L_Label    map[string]string `desc:"Set meta data on a container"`
+	D_Driver   string            `desc:"Volume driver to use"`
+	T_Template bool              `desc:"Create volume template, not volume"`
+	AccessMode string            `desc:"Volume access mode (readWriteOnce|readWriteMany|readOnlyMany)" default:"readWriteOnce"`
 }
 
 func (c *Create) Run(app *cli.Context) error {
@@ -32,9 +34,11 @@ func (c *Create) Run(app *cli.Context) error {
 	}
 
 	volume := &client.Volume{
-		SizeInGB: int64(sizeGB),
-		Driver:   c.D_Driver,
-		Labels:   c.L_Label,
+		SizeInGB:   int64(sizeGB),
+		Driver:     c.D_Driver,
+		Labels:     c.L_Label,
+		Template:   c.T_Template,
+		AccessMode: c.AccessMode,
 	}
 
 	volume.SpaceID, volume.StackID, volume.Name, err = ctx.ResolveSpaceStackName(name)

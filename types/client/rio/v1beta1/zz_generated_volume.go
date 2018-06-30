@@ -6,6 +6,9 @@ import (
 
 const (
 	VolumeType                      = "volume"
+	VolumeFieldAccessMode           = "accessMode"
+	VolumeFieldAccessModes          = "accessModes"
+	VolumeFieldCapacity             = "capacity"
 	VolumeFieldCreated              = "created"
 	VolumeFieldDescription          = "description"
 	VolumeFieldDriver               = "driver"
@@ -24,6 +27,9 @@ const (
 
 type Volume struct {
 	types.Resource
+	AccessMode           string            `json:"accessMode,omitempty" yaml:"accessMode,omitempty"`
+	AccessModes          []string          `json:"accessModes,omitempty" yaml:"accessModes,omitempty"`
+	Capacity             map[string]string `json:"capacity,omitempty" yaml:"capacity,omitempty"`
 	Created              string            `json:"created,omitempty" yaml:"created,omitempty"`
 	Description          string            `json:"description,omitempty" yaml:"description,omitempty"`
 	Driver               string            `json:"driver,omitempty" yaml:"driver,omitempty"`
@@ -34,7 +40,7 @@ type Volume struct {
 	SpaceID              string            `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
 	StackID              string            `json:"stackId,omitempty" yaml:"stackId,omitempty"`
 	State                string            `json:"state,omitempty" yaml:"state,omitempty"`
-	Template             string            `json:"template,omitempty" yaml:"template,omitempty"`
+	Template             bool              `json:"template,omitempty" yaml:"template,omitempty"`
 	Transitioning        string            `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
 	TransitioningMessage string            `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
 	UUID                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`

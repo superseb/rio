@@ -15,6 +15,7 @@ type Create struct {
 	CapAdd               []string          `desc:"Add Linux capabilities"`
 	CapDrop              []string          `desc:"Drop Linux capabilities"`
 	Cidfile              string            `desc:"Write the container ID to the file"`
+	Config               []string          `desc:"Configs to expose to the service (format: name:target)"`
 	Cpus                 string            `desc:"Number of CPUs"`
 	Device               []string          `desc:"Add a host device to the container"`
 	Dns                  []string          `desc:"Set custom DNS servers"`
@@ -47,15 +48,14 @@ type Create struct {
 	ReadOnly             bool              `desc:"Mount the container's root filesystem as read only"`
 	Restart              string            `desc:"Restart policy to apply when a container exits" default:"always"`
 	SecurityOpt          []string          `desc:"Security Options"`
-	//StopSignal           string            `desc:"Signal to stop a container" default:"SIGTERM"`
-	StopTimeout  string   `desc:"Timeout (in seconds) to stop a container"`
-	Tmpfs        []string `desc:"Mount a tmpfs directory"`
-	T_Tty        bool     `desc:"Allocate a pseudo-TTY"`
-	U_User       string   `desc:"Username or UID (format: <name|uid>[:<group|gid>])"`
-	V_Volume     []string `desc:"Bind mount a volume"`
-	VolumeDriver string   `desc:"Optional volume driver for the container"`
-	VolumesFrom  []string `desc:"Mount volumes from the specified container(s)"`
-	W_Workdir    string   `desc:"Working directory inside the container"`
+	StopTimeout          string            `desc:"Timeout (in seconds) to stop a container"`
+	Tmpfs                []string          `desc:"Mount a tmpfs directory"`
+	T_Tty                bool              `desc:"Allocate a pseudo-TTY"`
+	U_User               string            `desc:"Username or UID (format: <name|uid>[:<group|gid>])"`
+	V_Volume             []string          `desc:"Bind mount a volume"`
+	VolumeDriver         string            `desc:"Optional volume driver for the container"`
+	VolumesFrom          []string          `desc:"Mount volumes from the specified container(s)"`
+	W_Workdir            string            `desc:"Working directory inside the container"`
 }
 
 func (c *Create) Run(app *cli.Context) error {
@@ -137,6 +137,11 @@ func (c *Create) ToService(args []string) (*client.Service, error) {
 	}
 
 	service.Devices, err = ParseDevices(c.Device)
+	if err != nil {
+		return nil, err
+	}
+
+	service.Configs, err = ParseConfigs(c.Config)
 	if err != nil {
 		return nil, err
 	}

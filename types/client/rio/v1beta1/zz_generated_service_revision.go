@@ -8,6 +8,7 @@ const (
 	ServiceRevisionFieldCapDrop                = "capDrop"
 	ServiceRevisionFieldCommand                = "command"
 	ServiceRevisionFieldConditions             = "conditions"
+	ServiceRevisionFieldConfigs                = "configs"
 	ServiceRevisionFieldDNS                    = "dns"
 	ServiceRevisionFieldDNSOptions             = "dnsOptions"
 	ServiceRevisionFieldDNSSearch              = "dnsSearch"
@@ -56,6 +57,7 @@ type ServiceRevision struct {
 	CapDrop                []string                 `json:"capDrop,omitempty" yaml:"capDrop,omitempty"`
 	Command                []string                 `json:"command,omitempty" yaml:"command,omitempty"`
 	Conditions             []Condition              `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Configs                []ConfigMapping          `json:"configs,omitempty" yaml:"configs,omitempty"`
 	DNS                    []string                 `json:"dns,omitempty" yaml:"dns,omitempty"`
 	DNSOptions             []string                 `json:"dnsOptions,omitempty" yaml:"dnsOptions,omitempty"`
 	DNSSearch              []string                 `json:"dnsSearch,omitempty" yaml:"dnsSearch,omitempty"`
