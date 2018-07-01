@@ -5,7 +5,11 @@ import (
 	"strconv"
 
 	"github.com/rancher/norman/types"
+	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/values"
+	"github.com/rancher/types/mapper"
 	"k8s.io/api/apps/v1beta2"
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,9 +32,11 @@ type ServiceRevision struct {
 }
 
 type ServiceUnversionedSpec struct {
-	Scale       int    `json:"scale,omitempty"`
-	BatchSize   int    `json:"batchSize,omitempty"`
-	UpdateOrder string `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
+	Scale              int    `json:"scale,omitempty"`
+	BatchSize          int    `json:"batchSize,omitempty"`
+	UpdateOrder        string `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
+	UpdateStrategy     string `json:"updateStrategy,omitempty" norman:"type=enum,options=rolling|on-delete,default=rolling"`
+	DeploymentStrategy string `json:"deploymentStrategy,omitempty" norman:"type=enum,options=parallel|ordered,default=parallel"`
 
 	PodConfig
 	PrivilegedConfig
@@ -59,15 +65,42 @@ type ScaleStatus struct {
 }
 
 type PodConfig struct {
-	Hostname string `json:"hostname,omitempty"`
+	Hostname   string     `json:"hostname,omitempty"`
+	Global     bool       `json:"global,omitempty"`
+	Scheduling Scheduling `json:"scheduling,omitempty"`
 	//Metadata               map[string]interface{}   `json:"metadata,omitempty"`        //alias annotations
-	//StopSignal             string   `json:"stopSignal,omitempty" norman:"default=SIGTERM"`                                       // Signal to stop a container
 	StopGracePeriodSeconds *int     `json:"stopGracePeriod,omitempty"`                                                           // support friendly numbers
 	RestartPolicy          string   `json:"restart,omitempty" norman:"type=enum,options=never|on-failure|always,default=always"` //support no and OnFailure
 	DNS                    []string `json:"dns,omitempty"`                                                                       // support string
 	DNSOptions             []string `json:"dnsOptions,omitempty"`                                                                // support string
 	DNSSearch              []string `json:"dnsSearch,omitempty"`                                                                 // support string
 	ExtraHosts             []string `json:"extraHosts,omitempty"`                                                                // support map
+}
+
+type Scheduling struct {
+	Node      NodeScheduling `json:"node,omitempty"`
+	Scheduler string         `json:"scheduler,omitempty"`
+}
+
+func (s Scheduling) ToNodeAffinity() (*v1.NodeAffinity, error) {
+	data, err := convert.EncodeToMap(&s)
+	if err != nil {
+		return nil, err
+	}
+	mapper.SchedulingMapper{}.ToInternal(data)
+	nodeAffinityMap, ok := values.GetValue(data, "affinity", "nodeAffinity")
+	if !ok || convert.IsEmpty(nodeAffinityMap) {
+		return nil, nil
+	}
+	nodeAffinity := &v1.NodeAffinity{}
+	return nodeAffinity, convert.ToObj(nodeAffinityMap, nodeAffinity)
+}
+
+type NodeScheduling struct {
+	NodeName   string   `json:"nodeName" norman:"type=reference[/v1beta1/schemas/node]"`
+	RequireAll []string `json:"requireAll,omitempty"`
+	RequireAny []string `json:"requireAny,omitempty"`
+	Preferred  []string `json:"preferred,omitempty"`
 }
 
 type PrivilegedConfig struct {
@@ -116,26 +149,27 @@ func (p PortBinding) String() string {
 type ContainerConfig struct {
 	ContainerPrivilegedConfig
 
-	ReadonlyRootfs         bool          `json:"readOnly,omitempty"`
+	CPUs                   string        `json:"nanoCpus,omitempty"`
 	CapAdd                 []string      `json:"capAdd,omitempty"`  // support string
 	CapDrop                []string      `json:"capDrop,omitempty"` // support string
-	User                   string        `json:"user,omitempty"`
-	Tty                    bool          `json:"tty,omitempty"`
-	OpenStdin              bool          `json:"stdinOpen,omitempty"`   // alias interactive
-	Environment            []string      `json:"environment,omitempty"` // alias env, support map
-	Entrypoint             []string      `json:"entrypoint,omitempty"`
 	Command                []string      `json:"command,omitempty"` // support string
-	Image                  string        `json:"image,omitempty"`
-	Init                   bool          `json:"init,omitempty"`
-	Healthcheck            *HealthConfig `json:"healthcheck,omitempty"`
-	Tmpfs                  []Tmpfs       `json:"tmpfs,omitempty"` // support []string too
 	DefaultVolumeDriver    string        `json:"defaultVolumeDriver,omitempty"`
+	Entrypoint             []string      `json:"entrypoint,omitempty"`
+	Environment            []string      `json:"environment,omitempty"` // alias env, support map
+	Healthcheck            *HealthConfig `json:"healthcheck,omitempty"`
+	Image                  string        `json:"image,omitempty"`
+	ImagePullPolicy        string        `json:"imagePullPolicy,omitempty" norman:"type=enum,options=always|never|not-present,default=not-present"`
+	Init                   bool          `json:"init,omitempty"`
+	MemoryBytes            int64         `json:"memoryBytes,omitempty"`
+	MemoryReservationBytes int64         `json:"memoryReservationBytes,omitempty"`
+	OpenStdin              bool          `json:"stdinOpen,omitempty"` // alias interactive
+	ReadonlyRootfs         bool          `json:"readOnly,omitempty"`
+	Tmpfs                  []Tmpfs       `json:"tmpfs,omitempty"` // support []string too
+	Tty                    bool          `json:"tty,omitempty"`
+	User                   string        `json:"user,omitempty"`
 	Volumes                []Mount       `json:"volumes,omitempty"`     // support []string too
 	VolumesFrom            []string      `json:"volumesFrom,omitempty"` // support []string too
 	WorkingDir             string        `json:"workingDir,omitempty"`
-	MemoryBytes            int64         `json:"memoryBytes,omitempty"`
-	MemoryReservationBytes int64         `json:"memoryReservationBytes,omitempty"`
-	CPUs                   string        `json:"nanoCpus,omitempty"`
 
 	Devices []DeviceMapping `json:"devices,omitempty"` // support []string and map[string]string
 	Configs []ConfigMapping `json:"configs,omitempty"`

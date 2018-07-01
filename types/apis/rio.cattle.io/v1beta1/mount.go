@@ -1,10 +1,6 @@
 package v1beta1
 
 import (
-	"fmt"
-	"sort"
-	"strings"
-
 	"github.com/docker/go-units"
 )
 
@@ -41,8 +37,8 @@ func (m Mount) String() string {
 		if m.VolumeOptions.SubPath != "" {
 			addOpt(opts, "subPath="+m.VolumeOptions.SubPath)
 		}
-		if m.VolumeOptions.DriverConfig != nil && m.VolumeOptions.DriverConfig.Name != "" {
-			addOpt(opts, m.VolumeOptions.DriverConfig.String())
+		if m.VolumeOptions.Driver != "" {
+			addOpt(opts, "driver="+m.VolumeOptions.Driver)
 		}
 	}
 
@@ -101,36 +97,10 @@ type BindOptions struct {
 
 // VolumeOptions represents the options for a mount of type volume.
 type VolumeOptions struct {
-	NoCopy       bool          `json:"noCopy,omitempty"`
-	DriverConfig *DriverConfig `json:"driverConfig,omitempty"`
-	SubPath      string        `json:"subPath,omitempty"`
-}
-
-// DriverConfig represents a volume driver.
-type DriverConfig struct {
-	Name    string            `json:"name,omitempty"`
-	Options map[string]string `json:"options,omitempty"`
-}
-
-func (d DriverConfig) String() string {
-	if d.Name == "" {
-		return ""
-	}
-	str := ""
-	if len(d.Name) > 0 {
-		str = "driver=" + d.Name
-	}
-
-	if len(d.Options) > 0 {
-		var opts []string
-		for k, v := range d.Options {
-			opts = append(opts, fmt.Sprintf("%s=%s", k, v))
-		}
-		sort.Strings(opts)
-		str += "," + strings.Join(opts, ",")
-	}
-
-	return str
+	NoCopy   bool   `json:"noCopy,omitempty"`
+	Driver   string `json:"driver,omitempty"`
+	SizeInGB int    `json:"sizeInGb,omitempty"`
+	SubPath  string `json:"subPath,omitempty"`
 }
 
 // Tmpfs defines options specific to mounts of type "tmpfs".

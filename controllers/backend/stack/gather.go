@@ -12,18 +12,6 @@ func (s *stackController) gatherObjects(stack *v1beta1.Stack, internalStack *v1b
 
 	ns := namespace.StackToNamespace(stack)
 
-	for name, service := range internalStack.Services {
-		newResource := service.DeepCopy()
-		newResource.Kind = "Service"
-		newResource.APIVersion = v1beta1.SchemeGroupVersion.String()
-		newResource.Name = name
-		newResource.Namespace = ns
-		newResource.Spec.SpaceName = stack.Namespace
-		newResource.Spec.StackName = ref.FromStrings(stack.Namespace, stack.Name)
-
-		resources = append(resources, newResource)
-	}
-
 	for name, config := range internalStack.Configs {
 		newResource := config.DeepCopy()
 		newResource.Kind = "Config"
@@ -39,6 +27,18 @@ func (s *stackController) gatherObjects(stack *v1beta1.Stack, internalStack *v1b
 	for name, volume := range internalStack.Volumes {
 		newResource := volume.DeepCopy()
 		newResource.Kind = "Volume"
+		newResource.APIVersion = v1beta1.SchemeGroupVersion.String()
+		newResource.Name = name
+		newResource.Namespace = ns
+		newResource.Spec.SpaceName = stack.Namespace
+		newResource.Spec.StackName = ref.FromStrings(stack.Namespace, stack.Name)
+
+		resources = append(resources, newResource)
+	}
+
+	for name, service := range internalStack.Services {
+		newResource := service.DeepCopy()
+		newResource.Kind = "Service"
 		newResource.APIVersion = v1beta1.SchemeGroupVersion.String()
 		newResource.Name = name
 		newResource.Namespace = ns

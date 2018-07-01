@@ -13,6 +13,7 @@ const (
 	SidecarConfigFieldEnvironment            = "environment"
 	SidecarConfigFieldHealthcheck            = "healthcheck"
 	SidecarConfigFieldImage                  = "image"
+	SidecarConfigFieldImagePullPolicy        = "imagePullPolicy"
 	SidecarConfigFieldInit                   = "init"
 	SidecarConfigFieldInitContainer          = "initContainer"
 	SidecarConfigFieldMemoryBytes            = "memoryBytes"
@@ -40,6 +41,7 @@ type SidecarConfig struct {
 	Environment            []string        `json:"environment,omitempty" yaml:"environment,omitempty"`
 	Healthcheck            *HealthConfig   `json:"healthcheck,omitempty" yaml:"healthcheck,omitempty"`
 	Image                  string          `json:"image,omitempty" yaml:"image,omitempty"`
+	ImagePullPolicy        string          `json:"imagePullPolicy,omitempty" yaml:"imagePullPolicy,omitempty"`
 	Init                   bool            `json:"init,omitempty" yaml:"init,omitempty"`
 	InitContainer          bool            `json:"initContainer,omitempty" yaml:"initContainer,omitempty"`
 	MemoryBytes            int64           `json:"memoryBytes,omitempty" yaml:"memoryBytes,omitempty"`

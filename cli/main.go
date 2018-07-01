@@ -33,6 +33,24 @@ import (
 	"github.com/urfave/cli"
 )
 
+const (
+	desc = `For node scheduling arguments (--node-require, --node-require-any,
+   --node-preferred) the expression is evaluated against the node labels using the
+   following syntax.
+
+
+      foo=bar              Node with label foo must have the value bar
+      foo!=bar             If node has a label with key foo it must not equal to bar
+      foo                  Node must have a label with key foo and any value
+      foo in (bar, baz)    Node must have a label with key foo and a value of bar or baz
+      foo notin (bar, baz) If node has a label with key foo it must not equal to bar or baz
+      foo > 3              Node must have a label with key foo and a value greater than 3
+      foo < 3              Node must have a label with key foo and a value less than 3
+      !foo                 Node must not have a label with key foo with any value
+      expr && expr         Any above expression can be combined so that all expression must be true
+`
+)
+
 var (
 	appName = filepath.Base(os.Args[0])
 	Version = "dev"
@@ -104,11 +122,11 @@ func main() {
 		builder.Command(&run.Run{},
 			"Run a new service",
 			appName+" run [OPTIONS] IMAGE [COMMAND] [ARG...]",
-			""),
+			desc),
 		builder.Command(&create.Create{},
 			"Create a new service",
 			appName+" create [OPTIONS] IMAGE [COMMAND] [ARG...]",
-			""),
+			desc),
 		builder.Command(&rm.Rm{},
 			"Delete a service or stack",
 			appName+" rm ID_OR_NAME",

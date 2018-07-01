@@ -43,35 +43,21 @@ func parseAdditionalOptions(mount client.Mount, spec string) (client.Mount, erro
 		return mount, nil
 	}
 
-	setDriverOpts := false
-	driverOpts := &client.DriverConfig{
-		Options: map[string]string{},
-	}
-
 	for _, opt := range strings.Split(spec, ",") {
 		key, value := kv.Split(opt, "=")
 		key = strings.ToLower(key)
 		switch key {
 		case "driver":
-			setDriverOpts = true
-			driverOpts.Name = value
-		case "driver-opt":
-			setDriverOpts = true
-			key, value := kv.Split(value, "=")
-			driverOpts.Options[key] = value
+			if mount.VolumeOptions == nil {
+				return mount, fmt.Errorf("driver can only be used with volumes, not host bind mounts")
+			}
+			mount.VolumeOptions.Driver = value
 		case "subpath":
 			if mount.VolumeOptions == nil {
 				return mount, fmt.Errorf("subpath can only be used with volumes, not host bind mounts")
 			}
 			mount.VolumeOptions.SubPath = value
 		}
-	}
-
-	if setDriverOpts {
-		if mount.VolumeOptions == nil {
-			return mount, fmt.Errorf("driver and driver-opts can only be used with volumes, not host bind mounts")
-		}
-		mount.VolumeOptions.DriverConfig = driverOpts
 	}
 
 	return mount, nil

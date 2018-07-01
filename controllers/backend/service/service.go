@@ -60,12 +60,13 @@ func (s *serviceController) promote(service *v1beta1.Service) (bool, error) {
 			continue
 		}
 
-		newService, err := stackdeploy.MergeRevisionToService(service, rev)
+		newService, labels, err := stackdeploy.MergeRevisionToService(service, rev)
 		if err != nil {
 			return false, err
 		}
 
 		service.Spec.ServiceUnversionedSpec = *newService
+		service.Labels = labels
 		delete(service.Spec.Revisions, rev)
 		_, err = s.services.Update(service)
 		return true, err

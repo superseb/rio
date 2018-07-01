@@ -103,17 +103,17 @@ func (s *stackDeployController) deploy(key string, _ *v1beta1.Stack) error {
 }
 
 func (s *stackDeployController) deployNamespace(namespace string) error {
-	objects, err := s.services(nil, namespace)
+	objects, err := s.configs(nil, namespace)
 	if err != nil {
 		return err
 	}
 
-	objects, err = s.configs(objects, namespace)
+	volumes, objects, err := s.volumes(objects, namespace)
 	if err != nil {
 		return err
 	}
 
-	objects, err = s.volumes(objects, namespace)
+	objects, err = s.services(objects, volumes, namespace)
 	if err != nil {
 		return err
 	}

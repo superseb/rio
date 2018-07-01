@@ -9,7 +9,7 @@ import (
 
 func serviceMappers() []types.Mapper {
 	return []types.Mapper{
-		// Sorted by field name
+		// Sorted by field name (mostly)
 		pm.SingleSlice{Field: "capAdd"},
 		pm.SingleSlice{Field: "capDrop"},
 		pm.SingleSlice{Field: "dns"},
@@ -24,6 +24,12 @@ func serviceMappers() []types.Mapper {
 		pm.MapToSlice{Field: "environment", Sep: "="},
 		pm.MapToSlice{Field: "extraHosts", Sep: ":"},
 		&mapper.Embed{Field: "healthcheck"},
+		pm.AliasField{Field: "imagePullPolicy", Names: []string{"pullPolicy"}},
+		pm.AliasValue{Field: "imagePullPolicy", Alias: map[string][]string{
+			"always":      {"Always"},
+			"never":       {"Never"},
+			"not-present": {"IfNotPresent"}},
+		},
 		mapper.Move{From: "memoryBytes", To: "memory"},
 		pm.Bytes{"memory"},
 		mapper.Move{From: "memoryReservationBytes", To: "memoryReservation"},
@@ -38,6 +44,8 @@ func serviceMappers() []types.Mapper {
 			"never":      {"no"},
 			"on-failure": {"OnFailure"}},
 		},
+		mapper.Move{From: "scheduling/node/nodeId", To: "node"},
+		pm.SchedulingMapper{Field: "scheduling"},
 		mapper.Drop{Field: "spaceId", IgnoreDefinition: true},
 		mapper.Drop{Field: "stackId", IgnoreDefinition: true},
 		pm.AliasField{Field: "stdinOpen", Names: []string{"interactive"}},

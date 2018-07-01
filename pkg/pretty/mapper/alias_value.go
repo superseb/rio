@@ -1,7 +1,10 @@
 package mapper
 
 import (
+	"strings"
+
 	"github.com/rancher/norman/types"
+	"github.com/rancher/norman/types/convert"
 )
 
 type AliasValue struct {
@@ -20,7 +23,7 @@ func (d AliasValue) ToInternal(data map[string]interface{}) error {
 
 	for name, values := range d.Alias {
 		for _, value := range values {
-			if value == v {
+			if strings.EqualFold(value, convert.ToString(v)) {
 				data[d.Field] = name
 			}
 		}

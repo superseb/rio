@@ -17,23 +17,25 @@ type Create struct {
 	Cidfile              string            `desc:"Write the container ID to the file"`
 	Config               []string          `desc:"Configs to expose to the service (format: name:target)"`
 	Cpus                 string            `desc:"Number of CPUs"`
+	DeploymentStrategy   string            `json:"Approach to creating containers (parallel|ordered)" default:"parallel"`
 	Device               []string          `desc:"Add a host device to the container"`
 	Dns                  []string          `desc:"Set custom DNS servers"`
 	DnsOption            []string          `desc:"Set DNS options"`
 	DnsSearch            []string          `desc:"Set custom DNS search domains"`
-	Entrypoint           []string          `desc:"Overwrite the default ENTRYPOINT of the image"`
 	E_Env                []string          `desc:"Set environment variables"`
+	Entrypoint           []string          `desc:"Overwrite the default ENTRYPOINT of the image"`
 	EnvFile              []string          `desc:"Read in a file of environment variables"`
 	GroupAdd             []string          `desc:"Add additional groups to join"`
 	HealthCmd            string            `desc:"Command to run to check health"`
 	HealthInterval       string            `desc:"Time between running the check (ms|s|m|h)" default:"0s"`
-	HealthRetries        int               `desc:"Consecutive failures needed to report unhealthy"`
 	HealthRecoverRetries int               `desc:"Consecutive failures needed to report healthy"`
+	HealthRetries        int               `desc:"Consecutive failures needed to report unhealthy"`
 	HealthStartPeriod    string            `desc:"Start period for the container to initialize before starting health-retries countdown (ms|s|m|h)" default:"0s"`
 	HealthTimeout        string            `desc:"Maximum time to allow one check to run (ms|s|m|h)" default:"0s"`
 	Hostname             string            `desc:"Container host name"`
-	Init                 bool              `desc:"Run an init inside the container that forwards signals and reaps processes"`
 	I_Interactive        bool              `desc:"Keep STDIN open even if not attached"`
+	ImagePullPolicy      string            `desc:"Behavior determining when to pull the image (never|always|not-present)" default:"not-present"`
+	Init                 bool              `desc:"Run an init inside the container that forwards signals and reaps processes"`
 	Ipc                  string            `desc:"IPC mode to use"`
 	L_Label              map[string]string `desc:"Set meta data on a container"`
 	LabelFile            []string          `desc:"Read in a line delimited file of labels"`
@@ -41,21 +43,33 @@ type Create struct {
 	MemoryReservation    string            `desc:"Memory soft limit (format: <number>[<unit>], where unit = b, k, m or g)"`
 	N_Name               string            `desc:"Assign a name to the container"`
 	Net_Network          string            `desc:"Connect a container to a network" default:"default"`
-	NoHealthcheck        bool              `desc:"Disable any container-specified HEALTHCHECK"`
+	P_Publish            []string          `desc:"Publish a container's port(s) externally"`
 	Pid                  string            `desc:"PID namespace to use"`
 	Privileged           bool              `desc:"Give extended privileges to this container"`
-	P_Publish            []string          `desc:"Publish a container's port(s) externally"`
 	ReadOnly             bool              `desc:"Mount the container's root filesystem as read only"`
 	Restart              string            `desc:"Restart policy to apply when a container exits" default:"always"`
 	SecurityOpt          []string          `desc:"Security Options"`
 	StopTimeout          string            `desc:"Timeout (in seconds) to stop a container"`
-	Tmpfs                []string          `desc:"Mount a tmpfs directory"`
 	T_Tty                bool              `desc:"Allocate a pseudo-TTY"`
+	Tmpfs                []string          `desc:"Mount a tmpfs directory"`
 	U_User               string            `desc:"Username or UID (format: <name|uid>[:<group|gid>])"`
+	UpdateOrder          string            `desc:"Update order when doing batched rolling container updates (start-first|stop-first)"`
+	UpdateStrategy       string            `desc:"Approach to updating containers (rolling|on-delete)" default:"rolling"`
 	V_Volume             []string          `desc:"Bind mount a volume"`
 	VolumeDriver         string            `desc:"Optional volume driver for the container"`
 	VolumesFrom          []string          `desc:"Mount volumes from the specified container(s)"`
 	W_Workdir            string            `desc:"Working directory inside the container"`
+
+	Scheduling
+}
+
+type Scheduling struct {
+	Global         bool     `desc:"Run one container per node (or some nodes depending on scheduling)"`
+	Node           string   `desc:"Skip scheduling and run service on specified node"`
+	Scheduler      string   `desc:"Use a custom scheduler of the given name"`
+	NodeRequire    []string `desc:"Node running containers must match all expressions"`
+	NodeRequireAny []string `desc:"Node running containers must match one expression"`
+	NodePreferred  []string `desc:"Node running containers if possible should match expression"`
 }
 
 func (c *Create) Run(app *cli.Context) error {
@@ -102,33 +116,46 @@ func (c *Create) ToService(args []string) (*client.Service, error) {
 	}
 
 	service := &client.Service{
-		ExtraHosts:          c.AddHost,
+		CPUs:                c.Cpus,
 		CapAdd:              c.CapAdd,
 		CapDrop:             c.CapDrop,
 		Command:             args[1:],
-		CPUs:                c.Cpus,
-		DefaultVolumeDriver: c.VolumeDriver,
+		DeploymentStrategy:  c.DeploymentStrategy,
 		DNS:                 c.Dns,
 		DNSOptions:          c.DnsOption,
 		DNSSearch:           c.DnsSearch,
+		DefaultVolumeDriver: c.VolumeDriver,
 		Entrypoint:          c.Entrypoint,
+		ExtraHosts:          c.AddHost,
+		Global:              c.Global,
 		Hostname:            c.Hostname,
-		Init:                c.Init,
 		Image:               args[0],
-		OpenStdin:           c.I_Interactive,
+		ImagePullPolicy:     c.ImagePullPolicy,
+		Init:                c.Init,
 		IpcMode:             c.Ipc,
 		Labels:              c.L_Label,
 		Name:                c.N_Name,
 		NetworkMode:         c.Net_Network,
+		OpenStdin:           c.I_Interactive,
 		PidMode:             c.Pid,
 		Privileged:          c.Privileged,
 		ReadonlyRootfs:      c.ReadOnly,
 		RestartPolicy:       c.Restart,
-		//StopSignal:          c.StopSignal,
-		Tty:         c.T_Tty,
-		User:        c.U_User,
-		VolumesFrom: c.VolumesFrom,
-		WorkingDir:  c.W_Workdir,
+		Scheduling: &client.Scheduling{
+			Scheduler: c.Scheduler,
+			Node: &client.NodeScheduling{
+				NodeID:     c.Node,
+				RequireAll: c.NodeRequire,
+				RequireAny: c.NodeRequireAny,
+				Preferred:  c.NodePreferred,
+			},
+		},
+		Tty:            c.T_Tty,
+		User:           c.U_User,
+		UpdateOrder:    c.UpdateOrder,
+		UpdateStrategy: c.UpdateStrategy,
+		VolumesFrom:    c.VolumesFrom,
+		WorkingDir:     c.W_Workdir,
 	}
 
 	service.Volumes, err = ParseMounts(c.V_Volume)
