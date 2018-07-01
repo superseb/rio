@@ -20,7 +20,7 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 		Command:         container.Entrypoint,
 		Args:            container.Command,
 		WorkingDir:      container.WorkingDir,
-		ImagePullPolicy: container.ImagePullPolicy,
+		ImagePullPolicy: v1.PullPolicy(container.ImagePullPolicy),
 		SecurityContext: &v1.SecurityContext{
 			ReadOnlyRootFilesystem: &container.ReadonlyRootfs,
 			Capabilities: &v1.Capabilities{

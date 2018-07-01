@@ -15,7 +15,7 @@ func isDeployment(serviceName, namespace string, service *v1beta1.ServiceUnversi
 		return false
 	}
 
-	usedTemplates, _ := podSpec(serviceName, service, volumes)
+	usedTemplates, _ := podSpec(serviceName, nil, service, volumes)
 	if len(usedTemplates) > 0 {
 		return false
 	}
@@ -40,7 +40,7 @@ func mergeLabels(base, overlay map[string]string) map[string]string {
 }
 
 func deployment(objects []runtime.Object, labels map[string]string, serviceLabels map[string]string, depName, serviceName, namespace string, service *v1beta1.ServiceUnversionedSpec, volumes map[string]*v1beta1.Volume) []runtime.Object {
-	_, podSpec := podSpec(serviceName, service, volumes)
+	_, podSpec := podSpec(serviceName, serviceLabels, service, volumes)
 	scaleParams := parseScaleParams(service)
 
 	dep := &appsv1.Deployment{
