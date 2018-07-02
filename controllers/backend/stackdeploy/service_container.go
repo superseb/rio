@@ -13,6 +13,27 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+var (
+	fieldRefs = map[string]string{
+		"self/name":           "metadata.name",
+		"self/namespace":      "metadata.namespace",
+		"self/labels":         "metadata.labels",
+		"self/annotations":    "metadata.annotations",
+		"self/node":           "spec.nodeName",
+		"self/serviceAccount": "spec.serviceAccountName",
+		"self/hostIp":         "status.hostIP",
+		"self/ip":             "status.podIP",
+	}
+	resourceRefs = map[string]string{
+		"limits/cpu":                 "limits.cpu",
+		"limits/memory":              "limits.memory",
+		"limits/ephemeral-storage":   "limits.ephemeral-storage",
+		"requests/cpu":               "requests.cpu",
+		"requests/memory":            "requests.memory",
+		"requests/ephemeral-storage": "requests.ephemeral-storage",
+	}
+)
+
 func container(name string, container v1beta1.ContainerConfig, volumes map[string]v1.Volume, volumeDefs map[string]*v1beta1.Volume, usedTemplates map[string]*v1beta1.Volume) v1.Container {
 	c := v1.Container{
 		Name:            name,
@@ -43,13 +64,7 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 		c.SecurityContext.RunAsUser = &n
 	}
 
-	for _, env := range container.Environment {
-		name, value := kv.Split(env, "=")
-		c.Env = append(c.Env, v1.EnvVar{
-			Name:  name,
-			Value: value,
-		})
-	}
+	populateEnv(&c, container)
 
 	c.LivenessProbe, c.ReadinessProbe = toProbes(container.Healthcheck)
 
@@ -58,6 +73,102 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 	}
 
 	return c
+}
+
+func populateEnv(c *v1.Container, container v1beta1.ContainerConfig) {
+	for _, env := range container.Environment {
+		name, value := kv.Split(env, "=")
+		c.Env = append(c.Env, toEnvVar(c.Name, name, value))
+	}
+}
+
+func toEnvVar(containerName, name, value string) v1.EnvVar {
+	basic := v1.EnvVar{
+		Name:  name,
+		Value: value,
+	}
+
+	if !strings.HasPrefix(value, "$(") || !strings.HasSuffix(value, ")") {
+		return basic
+	}
+
+	key := value[2 : len(value)-1]
+
+	if fieldRefValue, ok := fieldRefs[key]; ok {
+		return v1.EnvVar{
+			Name: name,
+			ValueFrom: &v1.EnvVarSource{
+				FieldRef: &v1.ObjectFieldSelector{
+					FieldPath: fieldRefValue,
+				},
+			},
+		}
+	}
+
+	if resourceRefValue, ok := resourceRefs[key]; ok {
+		return v1.EnvVar{
+			Name: name,
+			ValueFrom: &v1.EnvVarSource{
+				ResourceFieldRef: &v1.ResourceFieldSelector{
+					ContainerName: containerName,
+					Resource:      resourceRefValue,
+				},
+			},
+		}
+	}
+
+	k, v := kv.Split(key, "/")
+	optional := strings.HasSuffix(v, "?")
+	if optional {
+		v = v[:len(v)-1]
+	}
+
+	if v == "" {
+		return basic
+	}
+
+	switch k {
+	case "config":
+		return v1.EnvVar{
+			Name: name,
+			ValueFrom: &v1.EnvVarSource{
+				ConfigMapKeyRef: &v1.ConfigMapKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: v,
+					},
+					Key:      "content",
+					Optional: &optional,
+				},
+			},
+		}
+	case "secret":
+		return v1.EnvVar{
+			Name: name,
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: &v1.SecretKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: v,
+					},
+					Key:      "content",
+					Optional: &optional,
+				},
+			},
+		}
+	default:
+		if resourceRefValue, ok := resourceRefs[v]; ok {
+			return v1.EnvVar{
+				Name: name,
+				ValueFrom: &v1.EnvVarSource{
+					ResourceFieldRef: &v1.ResourceFieldSelector{
+						ContainerName: k,
+						Resource:      resourceRefValue,
+					},
+				},
+			}
+		}
+	}
+
+	return basic
 }
 
 func populateResources(c *v1.Container, container v1beta1.ContainerConfig) {
