@@ -26,5 +26,7 @@ func authorizer(req *http.Request) (clientKey string, authed bool, err error) {
 }
 
 func newTunnel() http.Handler {
-	return remotedialer.New(authorizer, remotedialer.DefaultErrorWriter, remotedialer.AlwaysReady)
+	server := remotedialer.New(authorizer, remotedialer.DefaultErrorWriter, remotedialer.AlwaysReady)
+	setupK3s(server)
+	return server
 }

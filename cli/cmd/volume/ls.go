@@ -30,6 +30,7 @@ func (l *Ls) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	volumes, err := ctx.Client.Volume.List(util.DefaultListOpts())
 	if err != nil {

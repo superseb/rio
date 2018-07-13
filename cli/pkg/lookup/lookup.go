@@ -11,6 +11,7 @@ import (
 	"github.com/rancher/norman/types"
 	"github.com/rancher/rio/cli/pkg/up/questions"
 	"github.com/rancher/rio/types/client/rio/v1beta1"
+	client2 "github.com/rancher/rio/types/client/space/v1beta1"
 )
 
 func Lookup(c clientbase.APIBaseClientInterface, name string, typeNames ...string) (*types.Resource, error) {
@@ -104,10 +105,16 @@ func setupFilters(c clientbase.APIBaseClientInterface, name, schemaType string) 
 
 	stack, err := byName(c, stackName, client.StackType)
 	if err != nil {
-		return nil, err
+		if strings.HasPrefix(err.Error(), "Unknown schema type [") {
+			stack = nil
+		} else {
+			return nil, err
+		}
 	}
 
-	filters["stackId"] = stack.ID
+	if stack != nil {
+		filters["stackId"] = stack.ID
+	}
 	filters["name"] = serviceName
 
 	return filters, nil
@@ -119,6 +126,13 @@ func byName(c clientbase.APIBaseClientInterface, name, schemaType string) (*name
 	if schemaType == client.StackType && strings.Contains(name, "/") {
 		// stacks can't be foo/bar
 		return nil, nil
+	}
+
+	if schemaType == client2.PodType {
+		container, ok := ParseContainerName(name)
+		if ok {
+			name = container.PodName
+		}
 	}
 
 	filters, err := setupFilters(c, name, schemaType)

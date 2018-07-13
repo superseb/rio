@@ -1,35 +1,36 @@
 package client
 
 const (
-	SidecarConfigType                        = "sidecarConfig"
-	SidecarConfigFieldCPUs                   = "nanoCpus"
-	SidecarConfigFieldCapAdd                 = "capAdd"
-	SidecarConfigFieldCapDrop                = "capDrop"
-	SidecarConfigFieldCommand                = "command"
-	SidecarConfigFieldConfigs                = "configs"
-	SidecarConfigFieldDefaultVolumeDriver    = "defaultVolumeDriver"
-	SidecarConfigFieldDevices                = "devices"
-	SidecarConfigFieldEntrypoint             = "entrypoint"
-	SidecarConfigFieldEnvironment            = "environment"
-	SidecarConfigFieldHealthcheck            = "healthcheck"
-	SidecarConfigFieldImage                  = "image"
-	SidecarConfigFieldImagePullPolicy        = "imagePullPolicy"
-	SidecarConfigFieldInit                   = "init"
-	SidecarConfigFieldInitContainer          = "initContainer"
-	SidecarConfigFieldMemoryBytes            = "memoryBytes"
-	SidecarConfigFieldMemoryReservationBytes = "memoryReservationBytes"
-	SidecarConfigFieldOpenStdin              = "stdinOpen"
-	SidecarConfigFieldPrivileged             = "privileged"
-	SidecarConfigFieldReadonlyRootfs         = "readOnly"
-	SidecarConfigFieldTmpfs                  = "tmpfs"
-	SidecarConfigFieldTty                    = "tty"
-	SidecarConfigFieldUser                   = "user"
-	SidecarConfigFieldVolumes                = "volumes"
-	SidecarConfigFieldVolumesFrom            = "volumesFrom"
-	SidecarConfigFieldWorkingDir             = "workingDir"
+	SidekickConfigType                        = "sidekickConfig"
+	SidekickConfigFieldCPUs                   = "nanoCpus"
+	SidekickConfigFieldCapAdd                 = "capAdd"
+	SidekickConfigFieldCapDrop                = "capDrop"
+	SidekickConfigFieldCommand                = "command"
+	SidekickConfigFieldConfigs                = "configs"
+	SidekickConfigFieldDefaultVolumeDriver    = "defaultVolumeDriver"
+	SidekickConfigFieldDevices                = "devices"
+	SidekickConfigFieldEntrypoint             = "entrypoint"
+	SidekickConfigFieldEnvironment            = "environment"
+	SidekickConfigFieldExposedPorts           = "expose"
+	SidekickConfigFieldHealthcheck            = "healthcheck"
+	SidekickConfigFieldImage                  = "image"
+	SidekickConfigFieldImagePullPolicy        = "imagePullPolicy"
+	SidekickConfigFieldInit                   = "init"
+	SidekickConfigFieldInitContainer          = "initContainer"
+	SidekickConfigFieldMemoryLimitBytes       = "memoryLimitBytes"
+	SidekickConfigFieldMemoryReservationBytes = "memoryReservationBytes"
+	SidekickConfigFieldOpenStdin              = "stdinOpen"
+	SidekickConfigFieldPrivileged             = "privileged"
+	SidekickConfigFieldReadonlyRootfs         = "readOnly"
+	SidekickConfigFieldTmpfs                  = "tmpfs"
+	SidekickConfigFieldTty                    = "tty"
+	SidekickConfigFieldUser                   = "user"
+	SidekickConfigFieldVolumes                = "volumes"
+	SidekickConfigFieldVolumesFrom            = "volumesFrom"
+	SidekickConfigFieldWorkingDir             = "workingDir"
 )
 
-type SidecarConfig struct {
+type SidekickConfig struct {
 	CPUs                   string          `json:"nanoCpus,omitempty" yaml:"nanoCpus,omitempty"`
 	CapAdd                 []string        `json:"capAdd,omitempty" yaml:"capAdd,omitempty"`
 	CapDrop                []string        `json:"capDrop,omitempty" yaml:"capDrop,omitempty"`
@@ -39,12 +40,13 @@ type SidecarConfig struct {
 	Devices                []DeviceMapping `json:"devices,omitempty" yaml:"devices,omitempty"`
 	Entrypoint             []string        `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
 	Environment            []string        `json:"environment,omitempty" yaml:"environment,omitempty"`
+	ExposedPorts           []ExposedPort   `json:"expose,omitempty" yaml:"expose,omitempty"`
 	Healthcheck            *HealthConfig   `json:"healthcheck,omitempty" yaml:"healthcheck,omitempty"`
 	Image                  string          `json:"image,omitempty" yaml:"image,omitempty"`
 	ImagePullPolicy        string          `json:"imagePullPolicy,omitempty" yaml:"imagePullPolicy,omitempty"`
 	Init                   bool            `json:"init,omitempty" yaml:"init,omitempty"`
 	InitContainer          bool            `json:"initContainer,omitempty" yaml:"initContainer,omitempty"`
-	MemoryBytes            int64           `json:"memoryBytes,omitempty" yaml:"memoryBytes,omitempty"`
+	MemoryLimitBytes       int64           `json:"memoryLimitBytes,omitempty" yaml:"memoryLimitBytes,omitempty"`
 	MemoryReservationBytes int64           `json:"memoryReservationBytes,omitempty" yaml:"memoryReservationBytes,omitempty"`
 	OpenStdin              bool            `json:"stdinOpen,omitempty" yaml:"stdinOpen,omitempty"`
 	Privileged             bool            `json:"privileged,omitempty" yaml:"privileged,omitempty"`

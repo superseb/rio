@@ -1,4 +1,4 @@
-package stackdeploy
+package deploy
 
 import (
 	"fmt"

@@ -21,8 +21,10 @@ const (
 	ServiceFieldDevices                = "devices"
 	ServiceFieldEntrypoint             = "entrypoint"
 	ServiceFieldEnvironment            = "environment"
+	ServiceFieldExposedPorts           = "expose"
 	ServiceFieldExtraHosts             = "extraHosts"
 	ServiceFieldGlobal                 = "global"
+	ServiceFieldGlobalPermissions      = "globalPermissions"
 	ServiceFieldHealthcheck            = "healthcheck"
 	ServiceFieldHostname               = "hostname"
 	ServiceFieldImage                  = "image"
@@ -30,11 +32,13 @@ const (
 	ServiceFieldInit                   = "init"
 	ServiceFieldIpcMode                = "ipc"
 	ServiceFieldLabels                 = "labels"
-	ServiceFieldMemoryBytes            = "memoryBytes"
+	ServiceFieldMemoryLimitBytes       = "memoryLimitBytes"
 	ServiceFieldMemoryReservationBytes = "memoryReservationBytes"
+	ServiceFieldMetadata               = "metadata"
 	ServiceFieldName                   = "name"
 	ServiceFieldNetworkMode            = "net"
 	ServiceFieldOpenStdin              = "stdinOpen"
+	ServiceFieldPermissions            = "permissions"
 	ServiceFieldPidMode                = "pid"
 	ServiceFieldPortBindings           = "ports"
 	ServiceFieldPrivileged             = "privileged"
@@ -45,7 +49,7 @@ const (
 	ServiceFieldScale                  = "scale"
 	ServiceFieldScaleStatus            = "scaleStatus"
 	ServiceFieldScheduling             = "scheduling"
-	ServiceFieldSidecars               = "sidecars"
+	ServiceFieldSidekicks              = "sidekicks"
 	ServiceFieldSpaceID                = "spaceId"
 	ServiceFieldStackID                = "stackId"
 	ServiceFieldState                  = "state"
@@ -80,8 +84,10 @@ type Service struct {
 	Devices                []DeviceMapping            `json:"devices,omitempty" yaml:"devices,omitempty"`
 	Entrypoint             []string                   `json:"entrypoint,omitempty" yaml:"entrypoint,omitempty"`
 	Environment            []string                   `json:"environment,omitempty" yaml:"environment,omitempty"`
+	ExposedPorts           []ExposedPort              `json:"expose,omitempty" yaml:"expose,omitempty"`
 	ExtraHosts             []string                   `json:"extraHosts,omitempty" yaml:"extraHosts,omitempty"`
 	Global                 bool                       `json:"global,omitempty" yaml:"global,omitempty"`
+	GlobalPermissions      []Permission               `json:"globalPermissions,omitempty" yaml:"globalPermissions,omitempty"`
 	Healthcheck            *HealthConfig              `json:"healthcheck,omitempty" yaml:"healthcheck,omitempty"`
 	Hostname               string                     `json:"hostname,omitempty" yaml:"hostname,omitempty"`
 	Image                  string                     `json:"image,omitempty" yaml:"image,omitempty"`
@@ -89,11 +95,13 @@ type Service struct {
 	Init                   bool                       `json:"init,omitempty" yaml:"init,omitempty"`
 	IpcMode                string                     `json:"ipc,omitempty" yaml:"ipc,omitempty"`
 	Labels                 map[string]string          `json:"labels,omitempty" yaml:"labels,omitempty"`
-	MemoryBytes            int64                      `json:"memoryBytes,omitempty" yaml:"memoryBytes,omitempty"`
+	MemoryLimitBytes       int64                      `json:"memoryLimitBytes,omitempty" yaml:"memoryLimitBytes,omitempty"`
 	MemoryReservationBytes int64                      `json:"memoryReservationBytes,omitempty" yaml:"memoryReservationBytes,omitempty"`
+	Metadata               map[string]interface{}     `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Name                   string                     `json:"name,omitempty" yaml:"name,omitempty"`
 	NetworkMode            string                     `json:"net,omitempty" yaml:"net,omitempty"`
 	OpenStdin              bool                       `json:"stdinOpen,omitempty" yaml:"stdinOpen,omitempty"`
+	Permissions            []Permission               `json:"permissions,omitempty" yaml:"permissions,omitempty"`
 	PidMode                string                     `json:"pid,omitempty" yaml:"pid,omitempty"`
 	PortBindings           []PortBinding              `json:"ports,omitempty" yaml:"ports,omitempty"`
 	Privileged             bool                       `json:"privileged,omitempty" yaml:"privileged,omitempty"`
@@ -104,7 +112,7 @@ type Service struct {
 	Scale                  int64                      `json:"scale,omitempty" yaml:"scale,omitempty"`
 	ScaleStatus            *ScaleStatus               `json:"scaleStatus,omitempty" yaml:"scaleStatus,omitempty"`
 	Scheduling             *Scheduling                `json:"scheduling,omitempty" yaml:"scheduling,omitempty"`
-	Sidecars               map[string]SidecarConfig   `json:"sidecars,omitempty" yaml:"sidecars,omitempty"`
+	Sidekicks              map[string]SidekickConfig  `json:"sidekicks,omitempty" yaml:"sidekicks,omitempty"`
 	SpaceID                string                     `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
 	StackID                string                     `json:"stackId,omitempty" yaml:"stackId,omitempty"`
 	State                  string                     `json:"state,omitempty" yaml:"state,omitempty"`

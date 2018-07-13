@@ -20,6 +20,7 @@ func Stack() cli.Command {
 		Usage:     "Operations on stacks",
 		Action:    defaultAction(stackLs),
 		Flags:     table.WriterFlags(),
+		Category:  "SUB COMMANDS",
 		Subcommands: []cli.Command{
 			{
 				Name:      "ls",
@@ -73,15 +74,12 @@ func stackLs(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	collection, err := ctx.Client.Stack.List(util.DefaultListOpts())
 	if err != nil {
 		return err
 	}
-
-	//sort.Slice(collection.Data, func(i, j int) bool {
-	//	return collection.Data[i].Created > collection.Data[j].Created
-	//})
 
 	writer := table.NewWriter([][]string{
 		{"NAME", "Stack.Name"},
@@ -108,13 +106,14 @@ func stackCreate(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	names := []string{""}
 	if len(app.Args()) > 0 {
 		names = app.Args()
 	}
 
-	w, err := waiter.NewWaiter(app)
+	w, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,10 +145,11 @@ func stackRm(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	names := app.Args()
 
-	w, err := waiter.NewWaiter(app)
+	w, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}
@@ -182,6 +182,7 @@ func stackUpdate(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	if len(app.Args()) == 0 {
 		return fmt.Errorf("at least on stack name is required")
@@ -189,7 +190,7 @@ func stackUpdate(app *cli.Context) error {
 
 	names := app.Args()
 
-	w, err := waiter.NewWaiter(app)
+	w, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}

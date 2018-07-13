@@ -17,7 +17,7 @@ func (d SingleSlice) FromInternal(data map[string]interface{}) {
 
 	ss := convert.ToStringSlice(v)
 	if len(ss) == 1 {
-		data[d.Field] = ss[1]
+		data[d.Field] = ss[0]
 	}
 }
 

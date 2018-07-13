@@ -1,11 +1,41 @@
-package stackdeploy
+package deploy
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/rancher/rio/cli/pkg/kv"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func podTemplateSpec(labels, metadata, serviceLabels map[string]string, configs map[string]*v1beta1.Config, podSpec v1.PodSpec) v1.PodTemplateSpec {
+	pts := v1.PodTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Labels:      mergeLabels(labels, serviceLabels),
+			Annotations: map[string]string{},
+		},
+		Spec: podSpec,
+	}
+
+	for k, v := range metadata {
+		pts.Annotations[k] = v
+	}
+
+	for _, volume := range podSpec.Volumes {
+		config, ok := configs[strings.TrimPrefix(volume.Name, "config-")]
+		if ok {
+			h, err := config.Hash()
+			if err == nil {
+				pts.Annotations[fmt.Sprintf("rio.cattle.io/%s-hash", config.Name)] = h
+			}
+		}
+	}
+
+	return pts
+}
 
 func podSpec(serviceName string, serviceLabels map[string]string, service *v1beta1.ServiceUnversionedSpec, volumeDefs map[string]*v1beta1.Volume) (map[string]*v1beta1.Volume, v1.PodSpec) {
 	f := false
@@ -24,7 +54,7 @@ func podSpec(serviceName string, serviceLabels map[string]string, service *v1bet
 	usedTemplates := map[string]*v1beta1.Volume{}
 
 	podSpec.Containers = append(podSpec.Containers, container(serviceName, service.ContainerConfig, volumes, volumeDefs, usedTemplates))
-	for name, sidekick := range service.Sidecars {
+	for name, sidekick := range service.Sidekicks {
 		c := container(name, sidekick.ContainerConfig, volumes, volumeDefs, usedTemplates)
 		if sidekick.InitContainer {
 			podSpec.InitContainers = append(podSpec.InitContainers, c)
@@ -104,6 +134,10 @@ func dns(podSpec *v1.PodSpec, service *v1beta1.ServiceUnversionedSpec) {
 	dnsConfig := &v1.PodDNSConfig{
 		Nameservers: service.DNS,
 		Searches:    service.DNSSearch,
+	}
+
+	if len(dnsConfig.Nameservers) > 0 {
+		podSpec.DNSPolicy = v1.DNSNone
 	}
 
 	for _, dnsOpt := range service.DNSOptions {

@@ -1,8 +1,6 @@
-package stackdeploy
+package deploy
 
 import (
-	"fmt"
-
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/api/core/v1"
@@ -10,8 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func daemonset(objects []runtime.Object, labels map[string]string, serviceLabels map[string]string, depName, serviceName, namespace string, service *v1beta1.ServiceUnversionedSpec, volumes map[string]*v1beta1.Volume) ([]runtime.Object, error) {
-	usedTemplates, podSpec := podSpec(serviceName, serviceLabels, service, volumes)
+func daemonset(objects []runtime.Object, labels map[string]string, depName, namespace string, service *v1beta1.ServiceUnversionedSpec, podTemplateSpec v1.PodTemplateSpec) ([]runtime.Object, error) {
 	scaleParams := parseScaleParams(service)
 
 	daemonSet := &appsv1.DaemonSet{
@@ -29,12 +26,7 @@ func daemonset(objects []runtime.Object, labels map[string]string, serviceLabels
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: mergeLabels(labels, serviceLabels),
-				},
-				Spec: podSpec,
-			},
+			Template: podTemplateSpec,
 		},
 	}
 
@@ -47,10 +39,6 @@ func daemonset(objects []runtime.Object, labels map[string]string, serviceLabels
 				MaxUnavailable: scaleParams.MaxUnavailable,
 			}
 		}
-	}
-
-	if len(usedTemplates) > 0 {
-		return nil, fmt.Errorf("globally scheduling services can not use volume templates")
 	}
 
 	return append(objects, daemonSet), nil

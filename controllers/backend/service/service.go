@@ -6,7 +6,7 @@ import (
 	"reflect"
 
 	"github.com/rancher/norman/condition"
-	"github.com/rancher/rio/controllers/backend/stackdeploy"
+	"github.com/rancher/rio/pkg/deploy"
 	"github.com/rancher/rio/types"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"github.com/rancher/types/apis/apps/v1beta2"
@@ -60,13 +60,13 @@ func (s *serviceController) promote(service *v1beta1.Service) (bool, error) {
 			continue
 		}
 
-		newService, labels, err := stackdeploy.MergeRevisionToService(service, rev)
+		newService, err := deploy.MergeRevisionToService(service, rev)
 		if err != nil {
 			return false, err
 		}
 
 		service.Spec.ServiceUnversionedSpec = *newService
-		service.Labels = labels
+		service.Labels = newService.Labels
 		delete(service.Spec.Revisions, rev)
 		_, err = s.services.Update(service)
 		return true, err

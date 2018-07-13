@@ -147,7 +147,7 @@ func assignMaps(app *cli.Context, maps map[string]reflect.Value) {
 		if s != nil {
 			values := map[string]string{}
 			for _, part := range s {
-				parts := strings.SplitN(part, "=", 1)
+				parts := strings.SplitN(part, "=", 2)
 				if len(parts) == 1 {
 					values[parts[0]] = ""
 				} else {

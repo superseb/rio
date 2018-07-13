@@ -12,6 +12,7 @@ import (
 )
 
 type Export struct {
+	T_Type   string `desc:"Export specific type"`
 	O_Output string `desc:"Output format (yaml/json)"`
 }
 
@@ -20,6 +21,7 @@ func (e *Export) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	format, err := output.Format(e.O_Output)
 	if err != nil {
@@ -28,11 +30,15 @@ func (e *Export) Run(app *cli.Context) error {
 
 	args := app.Args()
 	if len(args) == 0 {
-		args = []string{"default"}
+		args = []string{ctx.DefaultStackName}
 	}
 
 	for _, arg := range args {
-		_, body, _, err := yamldownload.DownloadYAML(ctx, format, "export", arg, util.ExportEditTypes...)
+		types := util.ExportEditTypes
+		if e.T_Type != "" {
+			types = []string{e.T_Type}
+		}
+		_, body, _, err := yamldownload.DownloadYAML(ctx, format, "export", arg, types...)
 		if err != nil {
 			return err
 		}

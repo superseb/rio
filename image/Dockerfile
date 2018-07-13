@@ -40,7 +40,7 @@ RUN mkdir /usr/src/image && \
 RUN curl -fL -o /usr/src/image/bin/runc https://github.com/opencontainers/runc/releases/download/v1.0.0-rc5/runc.amd64
 RUN chmod +x /usr/src/image/bin/runc && strip --strip-debug /usr/src/image/bin/runc
 
-RUN curl -fL -o /usr/src/containerd.tgz https://github.com/containerd/containerd/releases/download/v1.1.0/containerd-1.1.0.linux-amd64.tar.gz
+RUN curl -fL -o /usr/src/containerd.tgz https://github.com/containerd/containerd/releases/download/v1.1.1/containerd-1.1.1.linux-amd64.tar.gz
 RUN tar xvf /usr/src/containerd.tgz -C /usr/src/image/bin bin/containerd bin/containerd-shim --strip-components=1
 
 RUN mkdir -p /usr/src/image/share/cni/bin

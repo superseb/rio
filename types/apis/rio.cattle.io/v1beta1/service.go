@@ -24,7 +24,6 @@ type Service struct {
 }
 
 type ServiceRevision struct {
-	Labels  map[string]string      `json:"labels,omitempty"`
 	Spec    ServiceUnversionedSpec `json:"spec,omitempty"`
 	Weight  int                    `json:"weight,omitempty"`
 	Promote bool                   `json:"promote,omitempty"`
@@ -32,15 +31,17 @@ type ServiceRevision struct {
 }
 
 type ServiceUnversionedSpec struct {
-	Scale              int    `json:"scale,omitempty"`
-	BatchSize          int    `json:"batchSize,omitempty"`
-	UpdateOrder        string `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
-	UpdateStrategy     string `json:"updateStrategy,omitempty" norman:"type=enum,options=rolling|on-delete,default=rolling"`
-	DeploymentStrategy string `json:"deploymentStrategy,omitempty" norman:"type=enum,options=parallel|ordered,default=parallel"`
+	Labels             map[string]string `json:"labels,omitempty"`
+	Metadata           map[string]string `json:"metadata,omitempty"` //alias annotations
+	Scale              int               `json:"scale,omitempty"`
+	BatchSize          int               `json:"batchSize,omitempty"`
+	UpdateOrder        string            `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
+	UpdateStrategy     string            `json:"updateStrategy,omitempty" norman:"type=enum,options=rolling|on-delete,default=rolling"`
+	DeploymentStrategy string            `json:"deploymentStrategy,omitempty" norman:"type=enum,options=parallel|ordered,default=parallel"`
 
 	PodConfig
 	PrivilegedConfig
-	Sidecars map[string]SidecarConfig `json:"sidecars,omitempty"`
+	Sidekicks map[string]SidekickConfig `json:"sidekicks,omitempty"`
 
 	ContainerConfig
 }
@@ -65,16 +66,17 @@ type ScaleStatus struct {
 }
 
 type PodConfig struct {
-	Hostname   string     `json:"hostname,omitempty"`
-	Global     bool       `json:"global,omitempty"`
-	Scheduling Scheduling `json:"scheduling,omitempty"`
-	//Metadata               map[string]interface{}   `json:"metadata,omitempty"`        //alias annotations
-	StopGracePeriodSeconds *int     `json:"stopGracePeriod,omitempty"`                                                           // support friendly numbers
-	RestartPolicy          string   `json:"restart,omitempty" norman:"type=enum,options=never|on-failure|always,default=always"` //support no and OnFailure
-	DNS                    []string `json:"dns,omitempty"`                                                                       // support string
-	DNSOptions             []string `json:"dnsOptions,omitempty"`                                                                // support string
-	DNSSearch              []string `json:"dnsSearch,omitempty"`                                                                 // support string
-	ExtraHosts             []string `json:"extraHosts,omitempty"`                                                                // support map
+	Hostname               string       `json:"hostname,omitempty"`
+	Global                 bool         `json:"global,omitempty"`
+	Scheduling             Scheduling   `json:"scheduling,omitempty"`
+	StopGracePeriodSeconds *int         `json:"stopGracePeriod,omitempty"`                                                           // support friendly numbers
+	RestartPolicy          string       `json:"restart,omitempty" norman:"type=enum,options=never|on-failure|always,default=always"` //support no and OnFailure
+	DNS                    []string     `json:"dns,omitempty"`                                                                       // support string
+	DNSOptions             []string     `json:"dnsOptions,omitempty"`                                                                // support string
+	DNSSearch              []string     `json:"dnsSearch,omitempty"`                                                                 // support string
+	ExtraHosts             []string     `json:"extraHosts,omitempty"`                                                                // support map
+	GlobalPermissions      []Permission `json:"globalPermissions,omitempty"`
+	Permissions            []Permission `json:"permissions,omitempty"`
 }
 
 type Scheduling struct {
@@ -89,7 +91,7 @@ func (s Scheduling) ToNodeAffinity() (*v1.NodeAffinity, error) {
 	}
 	mapper.SchedulingMapper{}.ToInternal(data)
 	nodeAffinityMap, ok := values.GetValue(data, "affinity", "nodeAffinity")
-	if !ok || convert.IsEmpty(nodeAffinityMap) {
+	if !ok || convert.IsAPIObjectEmpty(nodeAffinityMap) {
 		return nil, nil
 	}
 	nodeAffinity := &v1.NodeAffinity{}
@@ -97,7 +99,7 @@ func (s Scheduling) ToNodeAffinity() (*v1.NodeAffinity, error) {
 }
 
 type NodeScheduling struct {
-	NodeName   string   `json:"nodeName" norman:"type=reference[/v1beta1/schemas/node]"`
+	NodeName   string   `json:"nodeName,omitempty" norman:"type=reference[/v1beta1/schemas/node]"`
 	RequireAll []string `json:"requireAll,omitempty"`
 	RequireAny []string `json:"requireAny,omitempty"`
 	Preferred  []string `json:"preferred,omitempty"`
@@ -114,12 +116,24 @@ type ContainerPrivilegedConfig struct {
 	Privileged bool `json:"privileged,omitempty"`
 }
 
-// PortBinding represents a binding between a Host IP address and a Host Port
+type ExposedPort struct {
+	Name string `json:"name,omitempty"`
+	PortBinding
+}
+
+func (e ExposedPort) String() string {
+	s := e.PortBinding.String()
+	if e.Name == "" {
+		return s
+	}
+	return s + "," + e.Name
+}
+
 type PortBinding struct {
-	Port       int64  `json:"port"`
-	Protocol   string `json:"protocol"`
-	IP         string `json:"ip"`
-	TargetPort int64  `json:"targetPort"`
+	Port       int64  `json:"port,omitempty"`
+	Protocol   string `json:"protocol,omitempty"`
+	IP         string `json:"ip,omitempty"`
+	TargetPort int64  `json:"targetPort,omitempty"`
 }
 
 func (p PortBinding) String() string {
@@ -144,8 +158,6 @@ func (p PortBinding) String() string {
 	return b.String()
 }
 
-// TODO: add pull policy
-
 type ContainerConfig struct {
 	ContainerPrivilegedConfig
 
@@ -156,11 +168,12 @@ type ContainerConfig struct {
 	DefaultVolumeDriver    string        `json:"defaultVolumeDriver,omitempty"`
 	Entrypoint             []string      `json:"entrypoint,omitempty"`
 	Environment            []string      `json:"environment,omitempty"` // alias env, support map
+	ExposedPorts           []ExposedPort `json:"expose,omitempty"`      // support []string, map
 	Healthcheck            *HealthConfig `json:"healthcheck,omitempty"`
 	Image                  string        `json:"image,omitempty"`
 	ImagePullPolicy        string        `json:"imagePullPolicy,omitempty" norman:"type=enum,options=always|never|not-present,default=not-present"`
 	Init                   bool          `json:"init,omitempty"`
-	MemoryBytes            int64         `json:"memoryBytes,omitempty"`
+	MemoryLimitBytes       int64         `json:"memoryLimitBytes,omitempty"`
 	MemoryReservationBytes int64         `json:"memoryReservationBytes,omitempty"`
 	OpenStdin              bool          `json:"stdinOpen,omitempty"` // alias interactive
 	ReadonlyRootfs         bool          `json:"readOnly,omitempty"`
@@ -175,8 +188,8 @@ type ContainerConfig struct {
 	Configs []ConfigMapping `json:"configs,omitempty"`
 }
 
-type SidecarConfig struct {
-	InitContainer bool `json:",omitempty"`
+type SidekickConfig struct {
+	InitContainer bool `json:"initContainer,omitempty"`
 	ContainerConfig
 }
 
@@ -190,11 +203,11 @@ type HealthConfig struct {
 	// {"CMD-SHELL", command} : run command with system's default shell
 	Test []string `json:"test,omitempty"` //alias string, deal with CMD, CMD-SHELL, NONE
 
-	IntervalSeconds     int `json:"intervalSeconds,omitempty"`     // support friendly numbers, alias periodSeconds, period
-	TimeoutSeconds      int `json:"timeoutSeconds,omitempty"`      // support friendly numbers
-	InitialDelaySeconds int `json:"initialDelaySeconds,omitempty"` //alias start_period
-	HealthyThreshold    int `json:"healthyThreshold,omitempty"`    //alias retries, successThreshold
-	UnhealthyThreshold  int `json:"unhealthyThreshold,omitempty"`  //alias failureThreshold, set to retries if unset
+	IntervalSeconds     int `json:"intervalSeconds,omitempty" norman:"default=10"`   // support friendly numbers, alias periodSeconds, period
+	TimeoutSeconds      int `json:"timeoutSeconds,omitempty" norman:"default=5"`     // support friendly numbers
+	InitialDelaySeconds int `json:"initialDelaySeconds,omitempty"`                   //alias start_period
+	HealthyThreshold    int `json:"healthyThreshold,omitempty" norman:"default=2"`   //alias retries, successThreshold
+	UnhealthyThreshold  int `json:"unhealthyThreshold,omitempty" norman:"default=3"` //alias failureThreshold, set to retries if unset
 }
 
 // DeviceMapping represents the device mapping between the host and the container.

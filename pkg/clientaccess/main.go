@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	url2 "net/url"
+	"os"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -36,6 +37,21 @@ type clientToken struct {
 func AccessInfoToKubeConfig(destFile, server, token string) error {
 	_, _, err := accessInfoToKubeConfig(destFile, server, token, nil)
 	return err
+}
+
+func AccessInfoToTempKubeConfig(tempDir, server, token string) (string, error) {
+	f, err := ioutil.TempFile(tempDir, "tmp-")
+	if err != nil {
+		return "", err
+	}
+	if err := f.Close(); err != nil {
+		return "", err
+	}
+	_, _, err = accessInfoToKubeConfig(f.Name(), server, token, nil)
+	if err != nil {
+		os.Remove(f.Name())
+	}
+	return f.Name(), err
 }
 
 func AgentAccessInfoToKubeConfig(destFile, server, token string, override *url2.URL) ([]byte, *tls.Certificate, error) {

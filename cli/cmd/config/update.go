@@ -22,6 +22,7 @@ func (c *Update) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	if len(app.Args()) != 2 {
 		return fmt.Errorf("two arguments are required")
@@ -35,18 +36,26 @@ func (c *Update) Run(app *cli.Context) error {
 		return err
 	}
 
-	config, err := ctx.Client.Config.ByID(resource.ID)
-	if err != nil {
-		return err
-	}
-
 	content, err := util.ReadFile(file)
 	if err != nil {
 		return err
 	}
 
-	if len(c.L_Label) > 0 {
-		config.Labels = c.L_Label
+	err = RunUpdate(ctx, resource.ID, content, c.L_Label)
+	if err == nil {
+		fmt.Println(resource.ID)
+	}
+	return err
+}
+
+func RunUpdate(ctx *server.Context, id string, content []byte, labels map[string]string) error {
+	config, err := ctx.Client.Config.ByID(id)
+	if err != nil {
+		return err
+	}
+
+	if len(labels) > 0 {
+		config.Labels = labels
 	}
 	if utf8.Valid(content) {
 		config.Content = string(content)
@@ -56,11 +65,6 @@ func (c *Update) Run(app *cli.Context) error {
 		config.Encoded = true
 	}
 
-	config, err = ctx.Client.Config.Update(config, config)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(config.ID)
-	return nil
+	_, err = ctx.Client.Config.Update(config, config)
+	return err
 }

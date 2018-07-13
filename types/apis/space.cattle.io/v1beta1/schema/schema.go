@@ -38,7 +38,9 @@ func podTypes(schemas *types.Schemas) *types.Schemas {
 			RestartCount         int
 			ExitCode             *int
 		}{}).
-		MustImport(&Version, v1.Pod{})
+		MustImport(&Version, v1.Pod{}, struct {
+			types.Namespaced
+		}{})
 }
 
 func spaceTypes(schemas *types.Schemas) *types.Schemas {

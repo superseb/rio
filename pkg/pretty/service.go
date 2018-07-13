@@ -7,14 +7,10 @@ import (
 	"github.com/rancher/rio/types/client/rio/v1beta1"
 )
 
-func serviceMappers() []types.Mapper {
+func containerMappers() []types.Mapper {
 	return []types.Mapper{
-		// Sorted by field name (mostly)
 		pm.SingleSlice{Field: "capAdd"},
 		pm.SingleSlice{Field: "capDrop"},
-		pm.SingleSlice{Field: "dns"},
-		pm.SingleSlice{Field: "dnsOption"},
-		pm.SingleSlice{Field: "dnsSearch"},
 		pm.Shlex{Field: "command"},
 		pm.NewConfigMapping("configs"),
 		pm.MapToSlice{Field: "configs", Sep: ":"},
@@ -22,23 +18,47 @@ func serviceMappers() []types.Mapper {
 		pm.MapToSlice{Field: "devices", Sep: ":"},
 		pm.AliasField{Field: "environment", Names: []string{"env"}},
 		pm.MapToSlice{Field: "environment", Sep: "="},
-		pm.MapToSlice{Field: "extraHosts", Sep: ":"},
-		&mapper.Embed{Field: "healthcheck"},
+		pm.NewExposedPorts("expose"),
+		pm.HealthMapper{Field: "healthcheck"},
 		pm.AliasField{Field: "imagePullPolicy", Names: []string{"pullPolicy"}},
 		pm.AliasValue{Field: "imagePullPolicy", Alias: map[string][]string{
 			"always":      {"Always"},
 			"never":       {"Never"},
 			"not-present": {"IfNotPresent"}},
 		},
-		mapper.Move{From: "memoryBytes", To: "memory"},
+		mapper.Move{From: "memoryLimitBytes", To: "memoryLimit"},
+		pm.Bytes{"memoryLimit"},
+		pm.AliasField{Field: "memoryLimit", Names: []string{"memoryLimitsBytes"}},
+		mapper.Move{From: "memoryReservationBytes", To: "memory"},
 		pm.Bytes{"memory"},
-		mapper.Move{From: "memoryReservationBytes", To: "memoryReservation"},
-		pm.Bytes{"memoryReservation"},
+		pm.AliasField{Field: "memory", Names: []string{"mem", "memoryReservationBytes"}},
 		mapper.Move{From: "nanoCpus", To: "cpus"},
+		pm.AliasField{Field: "cpus", Names: []string{"nanoCpus"}},
+		pm.AliasField{Field: "stdinOpen", Names: []string{"interactive"}},
+		pm.NewTmpfs("tmpfs"),
+		pm.SingleSlice{Field: "tmpfs"},
+		pm.SingleSlice{Field: "volumesFrom"},
+		pm.NewMounts("volumes"),
+		pm.SingleSlice{Field: "volumes"},
+	}
+}
+
+func serviceMappers() []types.Mapper {
+	return append(containerMappers(),
+		// Sorted by field name (mostly)
+		pm.SingleSlice{Field: "dns"},
+		pm.SingleSlice{Field: "dnsOption"},
+		pm.SingleSlice{Field: "dnsSearch"},
+		pm.MapToSlice{Field: "extraHosts", Sep: ":"},
+		pm.AliasField{Field: "globalPermissions", Names: []string{"globalPerms"}},
+		pm.NewPermission("globalPermissions"),
+		pm.AliasField{Field: "metadata", Names: []string{"annotations"}},
 		pm.AliasField{Field: "net", Names: []string{"network"}},
 		pm.AliasValue{Field: "net", Alias: map[string][]string{
 			"default": {"bridge"}},
 		},
+		pm.AliasField{Field: "permissions", Names: []string{"perms"}},
+		pm.NewPermission("permissions"),
 		pm.NewPortBinding("ports"),
 		pm.AliasValue{Field: "restart", Alias: map[string][]string{
 			"never":      {"no"},
@@ -48,18 +68,13 @@ func serviceMappers() []types.Mapper {
 		pm.SchedulingMapper{Field: "scheduling"},
 		mapper.Drop{Field: "spaceId", IgnoreDefinition: true},
 		mapper.Drop{Field: "stackId", IgnoreDefinition: true},
-		pm.AliasField{Field: "stdinOpen", Names: []string{"interactive"}},
 		pm.Duration{Field: "stopGracePeriod"},
-		pm.NewTmpfs("tmpfs"),
-		pm.SingleSlice{Field: "tmpfs"},
-		pm.SingleSlice{Field: "volumesFrom"},
-		pm.NewMounts("volumes"),
-		pm.SingleSlice{Field: "volumes"},
-	}
+	)
 }
 
 func services(schemas *types.Schemas) *types.Schemas {
 	return schemas.
+		AddMapperForType(&Version, client.SidekickConfig{}, containerMappers()...).
 		AddMapperForType(&Version, client.ServiceRevision{}, serviceMappers()...).
 		AddMapperForType(&Version, client.Service{}, serviceMappers()...)
 }

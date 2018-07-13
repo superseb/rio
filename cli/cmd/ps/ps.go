@@ -20,8 +20,9 @@ func (p *Ps) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
-	if p.C_Containers {
+	if p.C_Containers || len(app.Args()) > 0 {
 		return p.containers(app, ctx)
 	}
 	return p.services(app, ctx)

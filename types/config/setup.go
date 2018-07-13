@@ -8,6 +8,7 @@ import (
 	"github.com/rancher/norman/store/crd"
 	"github.com/rancher/norman/store/proxy"
 	normantypes "github.com/rancher/norman/types"
+	"github.com/rancher/rio/api/config"
 	"github.com/rancher/rio/api/named"
 	"github.com/rancher/rio/api/pretty"
 	"github.com/rancher/rio/api/resetstack"
@@ -58,6 +59,7 @@ func setupService(ctx context.Context, rContext *types.Context) {
 func setupConfig(ctx context.Context, rContext *types.Context) {
 	s := rContext.Schemas.Schema(&schema.Version, client.ConfigType)
 	s.Store = resetstack.New(named.New(s.Store))
+	s.ListHandler = config.ListHandler
 }
 
 func setupVolume(ctx context.Context, rContext *types.Context) {

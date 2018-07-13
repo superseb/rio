@@ -106,6 +106,7 @@ spec:
         - containerPort: 9995
           name: admin-http
         resources: {}
+
       - args:
         - destination
         - -log-level=info
@@ -119,6 +120,7 @@ spec:
         - containerPort: 9999
           name: admin-http
         resources: {}
+
       - args:
         - proxy-api
         - -log-level=info
@@ -132,6 +134,7 @@ spec:
         - containerPort: 9996
           name: admin-http
         resources: {}
+
       - args:
         - tap
         - -log-level=info

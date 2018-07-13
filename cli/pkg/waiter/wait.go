@@ -28,7 +28,7 @@ func WaitCommand() cli.Command {
 	}
 }
 
-func WaitFor(ctx *cli.Context, resource string) error {
+func WaitFor(ctx *server.Context, resource string) error {
 	w, err := NewWaiter(ctx)
 	if err != nil {
 		return err
@@ -37,37 +37,32 @@ func WaitFor(ctx *cli.Context, resource string) error {
 	return w.Wait()
 }
 
-func waitForResources(ctx *cli.Context) error {
-	ctx.GlobalSet("wait", "true")
+func waitForResources(ctx *server.Context) error {
+	ctx.CLIContext.GlobalSet("wait", "true")
 
 	w, err := NewWaiter(ctx)
 	if err != nil {
 		return err
 	}
 
-	for _, r := range ctx.Args() {
+	for _, r := range ctx.CLIContext.Args() {
 		w.Add(r)
 	}
 
 	return w.Wait()
 }
 
-func NewWaiter(ctx *cli.Context) (*Waiter, error) {
-	serverCtx, err := server.NewContext(ctx)
-	if err != nil {
-		return nil, err
-	}
+func NewWaiter(ctx *server.Context) (*Waiter, error) {
+	client := ctx.Client
 
-	client := serverCtx.Client
-
-	waitState := ctx.GlobalString("wait-state")
+	waitState := ctx.CLIContext.GlobalString("wait-state")
 	if waitState == "" {
 		waitState = "active"
 	}
 
 	return &Waiter{
-		enabled: ctx.GlobalBool("wait"),
-		timeout: ctx.GlobalInt("wait-timeout"),
+		enabled: ctx.CLIContext.GlobalBool("wait"),
+		timeout: ctx.CLIContext.GlobalInt("wait-timeout"),
 		state:   waitState,
 		client:  client,
 	}, nil

@@ -43,6 +43,7 @@ func (i *Inspect) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	spaceClient, err := ctx.SpaceClient()
 	if err != nil {

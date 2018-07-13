@@ -1,10 +1,10 @@
 package up
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
-
-	"fmt"
 
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/types/convert"
@@ -13,12 +13,11 @@ import (
 	"github.com/rancher/rio/cli/pkg/waiter"
 	"github.com/rancher/rio/cli/server"
 	"github.com/rancher/rio/pkg/yaml"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 type Up struct {
-	F_File    string `desc:"The template to apply"`
-	S_Stack   string `desc:"Stack to use (id or name)"`
 	A_Answers string `desc:"Answer file in with key/value pairs in yaml or json"`
 	Prompt    bool   `desc:"Re-ask all questions if answer is not found in environment variables"`
 }
@@ -28,13 +27,48 @@ func (u *Up) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
-	content, err := util.ReadFile(u.F_File)
-	if err != nil {
-		return errors.Wrapf(err, "reading %s", u.F_File)
+	args := app.Args()
+	if len(args) > 2 {
+		return fmt.Errorf("either 0, 1, or 2 arguements are required: [[STACK_NAME] FILE|-]")
 	}
 
-	stackName, err := getStackName(u.F_File, u.S_Stack)
+	switch len(args) {
+	case 0:
+		return u.doUpAll(ctx)
+	case 1:
+		return u.doUp(ctx, args[0], "")
+	case 2:
+		return u.doUp(ctx, args[0], args[1])
+	default:
+		panic("if you see this panic you have experienced something impossible")
+	}
+}
+
+func (u *Up) doUpAll(ctx *server.Context) error {
+	files, err := ioutil.ReadDir(".")
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		if strings.HasSuffix(f.Name(), "-stack.yml") || strings.HasSuffix(f.Name(), "-stack.yaml") {
+			if err := u.doUp(ctx, f.Name(), ""); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (u *Up) doUp(ctx *server.Context, file, stack string) error {
+	content, err := util.ReadFile(file)
+	if err != nil {
+		return errors.Wrapf(err, "reading %s", file)
+	}
+
+	stackName, err := getStackName(file, stack)
 	if err != nil {
 		return err
 	}
@@ -53,15 +87,19 @@ func (u *Up) Run(app *cli.Context) error {
 		return fmt.Errorf("failed to parse answer file [%s]: %v", u.A_Answers, err)
 	}
 
+	logrus.Info("Deploying stack [%s] from %s", stack, file)
 	if err := up.Run(ctx, content, stackID, false, u.Prompt, answers); err != nil {
 		return err
 	}
 
-	return waiter.WaitFor(app, stackID)
+	return waiter.WaitFor(ctx, stackID)
 }
 
 func readAnswers(answersFile string) (map[string]string, error) {
 	content, err := util.ReadFile(answersFile)
+	if os.IsNotExist(err) {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -88,10 +126,6 @@ func getStackName(file, stack string) (string, error) {
 		file = strings.TrimSuffix(file, "-stack.yaml")
 		return file, nil
 	}
-	stack, err := os.Getwd()
-	if err != nil {
-		return "", errors.Wrap(err, "can not determine stack file from current directory")
-	}
 
-	return stack, nil
+	return "", fmt.Errorf("failed to determine stack name, please pass stack name as arguement")
 }

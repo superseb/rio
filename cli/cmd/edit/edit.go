@@ -2,16 +2,16 @@ package edit
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 
-	"fmt"
-
 	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/norman/types"
+	"github.com/rancher/rio/cli/cmd/config"
 	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/up"
 	"github.com/rancher/rio/cli/pkg/waiter"
@@ -36,15 +36,16 @@ func (edit *Edit) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
-	waiter, err := waiter.NewWaiter(app)
+	waiter, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}
 
 	args := app.Args()
 	if len(args) == 0 {
-		args = []string{"default"}
+		args = []string{ctx.DefaultStackName}
 	}
 
 	for _, arg := range args {
@@ -98,6 +99,10 @@ func (edit *Edit) Run(app *cli.Context) error {
 func (edit *Edit) update(ctx *server.Context, format string, obj *types.Resource, self string, content []byte) error {
 	if obj.Type == client.StackType {
 		return up.Run(ctx, content, obj.ID, true, edit.Prompt, nil)
+	}
+
+	if obj.Type == client.ConfigType {
+		return config.RunUpdate(ctx, obj.ID, content, nil)
 	}
 
 	parsed, err := url.Parse(self)

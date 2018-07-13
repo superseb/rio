@@ -21,6 +21,7 @@ func (c *Create) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	if len(app.Args()) != 2 {
 		return fmt.Errorf("two arguments are required, name and size in gigabytes")

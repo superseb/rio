@@ -27,6 +27,7 @@ const (
 	PodFieldLabels                        = "labels"
 	PodFieldMessage                       = "message"
 	PodFieldName                          = "name"
+	PodFieldNamespace                     = "namespace"
 	PodFieldNodeName                      = "nodeName"
 	PodFieldNodeSelector                  = "nodeSelector"
 	PodFieldNominatedNodeName             = "nominatedNodeName"
@@ -76,6 +77,7 @@ type Pod struct {
 	Labels                        map[string]string      `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Message                       string                 `json:"message,omitempty" yaml:"message,omitempty"`
 	Name                          string                 `json:"name,omitempty" yaml:"name,omitempty"`
+	Namespace                     string                 `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	NodeName                      string                 `json:"nodeName,omitempty" yaml:"nodeName,omitempty"`
 	NodeSelector                  map[string]string      `json:"nodeSelector,omitempty" yaml:"nodeSelector,omitempty"`
 	NominatedNodeName             string                 `json:"nominatedNodeName,omitempty" yaml:"nominatedNodeName,omitempty"`

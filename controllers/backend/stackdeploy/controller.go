@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/rancher/rio/cli/pkg/kv"
-	"github.com/rancher/rio/pkg/apply"
+	"github.com/rancher/rio/pkg/deploy"
 	"github.com/rancher/rio/pkg/namespace"
 	"github.com/rancher/rio/types"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 )
@@ -102,21 +103,33 @@ func (s *stackDeployController) deploy(key string, _ *v1beta1.Stack) error {
 	return err
 }
 
+func (s *stackDeployController) getStack(namespace string) (*deploy.StackResources, error) {
+	configs, err := s.configLister.List(namespace, labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	volumes, err := s.volumeLister.List(namespace, labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	services, err := s.serviceLister.List(namespace, labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	return &deploy.StackResources{
+		Configs:  configs,
+		Volumes:  volumes,
+		Services: services,
+	}, nil
+}
+
 func (s *stackDeployController) deployNamespace(namespace string) error {
-	objects, err := s.configs(nil, namespace)
+	stack, err := s.getStack(namespace)
 	if err != nil {
 		return err
 	}
-
-	volumes, objects, err := s.volumes(objects, namespace)
-	if err != nil {
-		return err
-	}
-
-	objects, err = s.services(objects, volumes, namespace)
-	if err != nil {
-		return err
-	}
-
-	return apply.Apply(objects, "stackdeploy-"+namespace, 0)
+	return deploy.Deploy(namespace, stack)
 }

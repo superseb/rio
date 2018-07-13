@@ -31,10 +31,10 @@ import (
 	"k8s.io/kubernetes/cmd/server"
 )
 
-func k3sConfig(dataDir string) (*server.ServerConfig, error) {
+func k3sConfig(dataDir string) (*server.ServerConfig, http.Handler, error) {
 	dataDir, err := resolvehome.Resolve(dataDir)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	listenIP := net.ParseIP("127.0.0.1")
@@ -50,13 +50,13 @@ func k3sConfig(dataDir string) (*server.ServerConfig, error) {
 		ClusterIPRange: *clusterIPNet,
 		ServiceIPRange: *serviceIPNet,
 		DataDir:        dataDir,
-	}, nil
+	}, newTunnel(), nil
 }
 
 func StartServer(ctx context.Context, dataDir string, httpPort, httpsPort int, controllers bool) error {
 	ctx = signal.SigTermCancelContext(ctx)
 
-	sc, err := k3sConfig(dataDir)
+	sc, tunnel, err := k3sConfig(dataDir)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func StartServer(ctx context.Context, dataDir string, httpPort, httpsPort int, c
 		})
 	}
 
-	root := router(sc, apiServer, sc.Handler)
+	root := router(sc, apiServer, sc.Handler, tunnel)
 
 	if err := startServer(ctx, apiRContext, httpPort, httpsPort, root); err != nil {
 		return err

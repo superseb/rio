@@ -8,8 +8,12 @@ import (
 
 	"path/filepath"
 
+	"time"
+
 	"github.com/rancher/rio/cli/pkg/resolvehome"
+	"github.com/rancher/rio/pkg/clientaccess"
 	"github.com/rancher/rio/pkg/enterchroot"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -29,6 +33,17 @@ func (a *Agent) Run(app *cli.Context) error {
 	dataDir, err := resolvehome.Resolve(a.D_DataDir)
 	if err != nil {
 		return err
+	}
+
+	for {
+		tmpFile, err := clientaccess.AccessInfoToTempKubeConfig("", a.S_Server, a.T_Token)
+		if err != nil {
+			logrus.Error(err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		os.Remove(tmpFile)
+		break
 	}
 
 	os.Setenv("RIO_URL", a.S_Server)

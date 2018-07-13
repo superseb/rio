@@ -3,6 +3,10 @@ package v1beta1
 import (
 	"fmt"
 
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+
 	"github.com/rancher/norman/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -54,4 +58,18 @@ func (c ConfigMapping) String() string {
 	}
 
 	return msg
+}
+
+func (c Config) Hash() (string, error) {
+	content := []byte(c.Spec.Content)
+	if c.Spec.Encoded {
+		bytes, err := base64.StdEncoding.DecodeString(c.Spec.Content)
+		if err != nil {
+			return "", err
+		}
+		content = bytes
+	}
+
+	sum := sha256.Sum256(content)
+	return hex.EncodeToString(sum[:]), nil
 }

@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"fmt"
+
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/rio/cli/cmd/agent"
@@ -13,6 +15,9 @@ import (
 	"github.com/rancher/rio/cli/cmd/exec"
 	"github.com/rancher/rio/cli/cmd/export"
 	"github.com/rancher/rio/cli/cmd/inspect"
+	"github.com/rancher/rio/cli/cmd/kubectl"
+	"github.com/rancher/rio/cli/cmd/login"
+	"github.com/rancher/rio/cli/cmd/logs"
 	"github.com/rancher/rio/cli/cmd/node"
 	"github.com/rancher/rio/cli/cmd/promote"
 	"github.com/rancher/rio/cli/cmd/ps"
@@ -27,7 +32,7 @@ import (
 	"github.com/rancher/rio/cli/cmd/weight"
 	"github.com/rancher/rio/cli/pkg/builder"
 	"github.com/rancher/rio/cli/pkg/waiter"
-	_ "github.com/rancher/rio/pkg/conduit"
+	server2 "github.com/rancher/rio/cli/server"
 	_ "github.com/rancher/rio/pkg/kubectl"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
@@ -53,7 +58,7 @@ const (
 
 var (
 	appName = filepath.Base(os.Args[0])
-	Version = "dev"
+	VERSION = "dev"
 )
 
 func main() {
@@ -63,8 +68,8 @@ func main() {
 
 	app := cli.NewApp()
 	app.Name = appName
-	app.Usage = "Containers as simple as they should be"
-	app.Version = Version
+	app.Usage = "Containers made simple, as they should be"
+	app.Version = VERSION
 	app.Flags = []cli.Flag{
 		cli.BoolFlag{
 			Name:  "debug",
@@ -84,7 +89,7 @@ func main() {
 			Usage: "State to wait for (active, healthy, etc)",
 		},
 		cli.StringFlag{
-			Name:   "url",
+			Name:   "server",
 			Usage:  "Specify the Rio API endpoint URL",
 			EnvVar: "RIO_URL",
 		},
@@ -93,40 +98,43 @@ func main() {
 			Usage:  "Specify Rio API token",
 			EnvVar: "RIO_TOKEN",
 		},
+		cli.StringFlag{
+			Name:   "kubeconfig",
+			Usage:  "Specify Kubeconfig to use to connect to Kubernetes",
+			EnvVar: "RIO_KUBECONFIG",
+		},
+		cli.StringFlag{
+			Name:   "workspace",
+			Value:  "default",
+			Usage:  "Specify which workspace to use",
+			EnvVar: "RIO_WORKSPACE",
+		},
 	}
 
 	app.Commands = []cli.Command{
-		stack.Stack(),
 		config.Config(app),
 		volume.Volume(app),
+		stack.Stack(),
+		node.Node(),
+
 		builder.Command(&ps.Ps{},
 			"List services and containers",
 			appName+" ps [OPTIONS] [STACK...]",
 			""),
-		builder.Command(&exec.Exec{},
-			"Run a command in a running container",
-			appName+" exec [OPTIONS] CONTAINER COMMAND [ARG...]",
-			""),
-		builder.Command(&scale.Scale{},
-			"Scale a service",
-			appName+" scale [SERVICE=NUMBER...]",
-			""),
-		builder.Command(&server.Server{},
-			"Run management server",
-			appName+" server [OPTIONS]",
-			""),
-		builder.Command(&agent.Agent{},
-			"Run node agent",
-			appName+" agent [OPTIONS]",
-			""),
+
 		builder.Command(&run.Run{},
-			"Run a new service",
+			"Create and run a new service",
 			appName+" run [OPTIONS] IMAGE [COMMAND] [ARG...]",
 			desc),
 		builder.Command(&create.Create{},
 			"Create a new service",
 			appName+" create [OPTIONS] IMAGE [COMMAND] [ARG...]",
 			desc),
+		builder.Command(&scale.Scale{},
+			"Scale a service",
+			appName+" scale [SERVICE=NUMBER...]",
+			""),
+
 		builder.Command(&rm.Rm{},
 			"Delete a service or stack",
 			appName+" rm ID_OR_NAME",
@@ -135,14 +143,39 @@ func main() {
 			"Edit a service or stack",
 			appName+" edit ID_OR_NAME",
 			""),
+		builder.Command(&inspect.Inspect{},
+			"Print the raw API output of a resource",
+			appName+" inspect [ID_OR_NAME...]",
+			""),
+		builder.Command(&up.Up{},
+			"Bring up a stack",
+			appName+" up [OPTIONS] [[STACK_NAME] FILE|-]",
+			""),
 		builder.Command(&export.Export{},
 			"Export a stack",
 			appName+" export STACK_ID_OR_NAME",
 			""),
-		builder.Command(&up.Up{},
-			"Bring up a stack",
-			appName+" up [OPTIONS]",
+
+		config.NewCatCommand("", app),
+
+		builder.Command(&exec.Exec{},
+			"Run a command in a running container",
+			appName+" exec [OPTIONS] CONTAINER COMMAND [ARG...]",
 			""),
+		builder.Command(&logs.Logs{},
+			"Print logs from containers",
+			appName+" logs [OPTIONS] [CONTAINER_OR_SERVICE...]",
+			""),
+
+		builder.Command(&server.Server{},
+			"Run management server",
+			appName+" server [OPTIONS]",
+			""),
+		builder.Command(&agent.Agent{},
+			"Run node agent",
+			appName+" agent [OPTIONS]",
+			""),
+
 		builder.Command(&stage.Stage{},
 			"Stage a new revision of a service",
 			appName+" stage [OPTIONS] [SERVICE_ID_NAME]",
@@ -155,14 +188,16 @@ func main() {
 			"Weight a percentage of traffic to a staged service",
 			appName+" weight [OPTIONS] [SERVICE_REVISION=PERCENTAGE...]",
 			""),
-		builder.Command(&inspect.Inspect{},
-			"Print the raw API output of a resource",
-			appName+" inspect [ID_OR_NAME...]",
+
+		waiter.WaitCommand(),
+
+		builder.Command(&login.Login{},
+			"Login into Rio",
+			appName+" login",
 			""),
-		node.Node(),
+
+		kubectl.NewKubectlCommand(),
 	}
-	app.Commands = append(app.Commands,
-		waiter.WaitCommand())
 	app.Before = func(ctx *cli.Context) error {
 		if ctx.GlobalBool("debug") {
 			clientbase.Debug = true
@@ -170,11 +205,33 @@ func main() {
 		}
 		return nil
 	}
+	app.ExitErrHandler = func(context *cli.Context, err error) {
+		if err == server2.ErrNoConfig {
+			printConfigUsage()
+		} else {
+			cli.HandleExitCoder(err)
+		}
+	}
 
 	err := app.Run(reformatArgs(os.Args))
 	if err != nil {
 		logrus.Fatal(err)
 	}
+}
+
+func printConfigUsage() {
+	fmt.Print(`
+No configuration found to contact server.  If you already have a Rio or a Kubernetes cluster running then run
+
+    rio login
+
+If you don't have an existing server you should run "rio server" on a Linux server or setup a Kubernetes cluster.
+If you are just looking for general "rio" CLI usage then run
+
+    rio --help
+
+`)
+	os.Exit(1)
 }
 
 func reformatArgs(args []string) []string {

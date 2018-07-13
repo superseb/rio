@@ -6,6 +6,8 @@ import (
 	"github.com/rancher/norman/types/convert"
 )
 
+var abbrs = []string{"", "k", "m", "g", "t", "p"}
+
 type Bytes struct {
 	Field string
 }
@@ -21,7 +23,7 @@ func (d Bytes) FromInternal(data map[string]interface{}) {
 		return
 	}
 
-	data[d.Field] = units.BytesSize(float64(n))
+	data[d.Field] = units.CustomSize("%.4g%s", float64(n), 1024.0, abbrs)
 }
 
 func (d Bytes) ToInternal(data map[string]interface{}) error {

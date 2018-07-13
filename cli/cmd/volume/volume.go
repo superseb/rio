@@ -18,6 +18,7 @@ func Volume(app *cli.App) cli.Command {
 		Usage:     "Operations on volumes",
 		Action:    util.DefaultAction(ls.Action),
 		Flags:     table.WriterFlags(),
+		Category:  "SUB COMMANDS",
 		Subcommands: []cli.Command{
 			builder.Command(&Ls{},
 				"List volumes",

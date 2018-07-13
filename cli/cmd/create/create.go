@@ -25,6 +25,8 @@ type Create struct {
 	E_Env                []string          `desc:"Set environment variables"`
 	Entrypoint           []string          `desc:"Overwrite the default ENTRYPOINT of the image"`
 	EnvFile              []string          `desc:"Read in a file of environment variables"`
+	Expose               []string          `desc:"Expose a container's port(s) internally"`
+	GlobalPermission     []string          `desc:"Permissions to grant to container's service account for all stacks"`
 	GroupAdd             []string          `desc:"Add additional groups to join"`
 	HealthCmd            string            `desc:"Command to run to check health"`
 	HealthInterval       string            `desc:"Time between running the check (ms|s|m|h)" default:"0s"`
@@ -39,11 +41,13 @@ type Create struct {
 	Ipc                  string            `desc:"IPC mode to use"`
 	L_Label              map[string]string `desc:"Set meta data on a container"`
 	LabelFile            []string          `desc:"Read in a line delimited file of labels"`
-	M_Memory             string            `desc:"Memory limit (format: <number>[<unit>], where unit = b, k, m or g)"`
-	MemoryReservation    string            `desc:"Memory soft limit (format: <number>[<unit>], where unit = b, k, m or g)"`
+	M_Memory             string            `desc:"Memory reservation (format: <number>[<unit>], where unit = b, k, m or g)"`
+	MemoryLimit          string            `desc:"Memory hard limit (format: <number>[<unit>], where unit = b, k, m or g)"`
+	Metadata             map[string]string `desc:"Metadata to attach to this service"`
 	N_Name               string            `desc:"Assign a name to the container"`
 	Net_Network          string            `desc:"Connect a container to a network" default:"default"`
 	P_Publish            []string          `desc:"Publish a container's port(s) externally"`
+	Permission           []string          `desc:"Permissions to grant to container's service account in current stack"`
 	Pid                  string            `desc:"PID namespace to use"`
 	Privileged           bool              `desc:"Give extended privileges to this container"`
 	ReadOnly             bool              `desc:"Mount the container's root filesystem as read only"`
@@ -90,6 +94,7 @@ func (c *Create) RunCallback(app *cli.Context, cb func(service *client.Service) 
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	service.SpaceID, service.StackID, service.Name, err = ctx.ResolveSpaceStackName(service.Name)
 	if err != nil {
@@ -103,7 +108,7 @@ func (c *Create) RunCallback(app *cli.Context, cb func(service *client.Service) 
 		return err
 	}
 
-	return waiter.WaitFor(app, s.ID)
+	return waiter.WaitFor(ctx, s.ID)
 }
 
 func (c *Create) ToService(args []string) (*client.Service, error) {
@@ -173,6 +178,21 @@ func (c *Create) ToService(args []string) (*client.Service, error) {
 		return nil, err
 	}
 
+	service.Metadata = map[string]interface{}{}
+	for k, v := range c.Metadata {
+		service.Metadata[k] = v
+	}
+
+	service.GlobalPermissions, err = ParsePermissions(c.GlobalPermission)
+	if err != nil {
+		return nil, err
+	}
+
+	service.Permissions, err = ParsePermissions(c.Permission)
+	if err != nil {
+		return nil, err
+	}
+
 	service.Environment, err = opts.ReadKVEnvStrings(c.EnvFile, c.E_Env)
 	if err != nil {
 		return nil, err
@@ -197,6 +217,11 @@ func (c *Create) ToService(args []string) (*client.Service, error) {
 	}
 
 	service.PortBindings, err = ParsePorts(c.P_Publish)
+	if err != nil {
+		return nil, err
+	}
+
+	service.ExposedPorts, err = ParseExposedPorts(c.Expose)
 	if err != nil {
 		return nil, err
 	}

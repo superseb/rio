@@ -31,6 +31,7 @@ func (l *Ls) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	configs, err := ctx.Client.Config.List(util.DefaultListOpts())
 	if err != nil {

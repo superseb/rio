@@ -1,4 +1,4 @@
-package stackdeploy
+package deploy
 
 import (
 	"strings"
@@ -10,12 +10,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func isDeployment(serviceName, namespace string, service *v1beta1.ServiceUnversionedSpec, volumes map[string]*v1beta1.Volume) bool {
+func isDeployment(service *v1beta1.ServiceUnversionedSpec, usedTemplates map[string]*v1beta1.Volume) bool {
 	if service.UpdateStrategy == "on-delete" || service.DeploymentStrategy == "ordered" {
 		return false
 	}
 
-	usedTemplates, _ := podSpec(serviceName, nil, service, volumes)
 	if len(usedTemplates) > 0 {
 		return false
 	}
@@ -39,8 +38,7 @@ func mergeLabels(base, overlay map[string]string) map[string]string {
 	return result
 }
 
-func deployment(objects []runtime.Object, labels map[string]string, serviceLabels map[string]string, depName, serviceName, namespace string, service *v1beta1.ServiceUnversionedSpec, volumes map[string]*v1beta1.Volume) []runtime.Object {
-	_, podSpec := podSpec(serviceName, serviceLabels, service, volumes)
+func deployment(objects []runtime.Object, labels map[string]string, depName, namespace string, service *v1beta1.ServiceUnversionedSpec, podTemplateSpec v1.PodTemplateSpec) []runtime.Object {
 	scaleParams := parseScaleParams(service)
 
 	dep := &appsv1.Deployment{
@@ -60,12 +58,7 @@ func deployment(objects []runtime.Object, labels map[string]string, serviceLabel
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: mergeLabels(labels, serviceLabels),
-				},
-				Spec: podSpec,
-			},
+			Template: podTemplateSpec,
 			Strategy: appsv1.DeploymentStrategy{
 				Type: appsv1.RollingUpdateDeploymentStrategyType,
 			},

@@ -23,8 +23,9 @@ func (w *Weight) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
-	waiter, err := waiter.NewWaiter(app)
+	waiter, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}

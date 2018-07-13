@@ -2,10 +2,10 @@ package table
 
 import (
 	"encoding/json"
-	"html/template"
 	"io"
 	"os"
 	"text/tabwriter"
+	"text/template"
 	"time"
 
 	"github.com/docker/go-units"

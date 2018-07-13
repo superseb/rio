@@ -1,4 +1,4 @@
-package stackdeploy
+package deploy
 
 import (
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
@@ -8,8 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func statefulset(objects []runtime.Object, labels map[string]string, serviceLabels map[string]string, depName, serviceName, namespace string, service *v1beta1.ServiceUnversionedSpec, volumes map[string]*v1beta1.Volume) ([]runtime.Object, error) {
-	usedTemplates, podSpec := podSpec(serviceName, serviceLabels, service, volumes)
+func statefulset(objects []runtime.Object, labels map[string]string, depName, namespace string, service *v1beta1.ServiceUnversionedSpec, usedTemplates map[string]*v1beta1.Volume, podTemplateSpec v1.PodTemplateSpec) ([]runtime.Object, error) {
 	scaleParams := parseScaleParams(service)
 
 	statefulSet := &appsv1.StatefulSet{
@@ -29,12 +28,7 @@ func statefulset(objects []runtime.Object, labels map[string]string, serviceLabe
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
-			Template: v1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: mergeLabels(labels, serviceLabels),
-				},
-				Spec: podSpec,
-			},
+			Template: podTemplateSpec,
 		},
 	}
 

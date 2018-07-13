@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	SpaceLabel = "space.rio.cattle.io"
+	SpaceLabel = "rio.cattle.io/space"
 )
 
 type Manager struct {

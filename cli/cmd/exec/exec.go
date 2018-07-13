@@ -3,18 +3,18 @@ package exec
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/docker/docker/pkg/reexec"
-	"github.com/rancher/rio/cli/pkg/kv"
+	"github.com/rancher/rio/cli/cmd/ps"
 	"github.com/rancher/rio/cli/server"
-	spaceclient "github.com/rancher/rio/types/client/space/v1beta1"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
 type Exec struct {
-	I_Stdin bool `desc:"Pass stdin to the container"`
-	T_Tty   bool `desc:"Stdin is a TTY"`
+	I_Stdin     bool   `desc:"Pass stdin to the container"`
+	T_Tty       bool   `desc:"Stdin is a TTY"`
+	C_Container string `desc:"Specific container in pod, default is first container"`
 }
 
 func (e *Exec) Run(app *cli.Context) error {
@@ -22,6 +22,7 @@ func (e *Exec) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	c, err := ctx.SpaceClient()
 	if err != nil {
@@ -33,14 +34,22 @@ func (e *Exec) Run(app *cli.Context) error {
 		return fmt.Errorf("at least two arguments are required CONTAINER CMD")
 	}
 
-	pod, containerName, err := FindPodAndContainer(args[0], c)
+	cd, err := ps.ListFirstPod(c, false, e.C_Container, args[0])
 	if err != nil {
 		return err
 	}
 
-	podNS, podName := kv.Split(pod.ID, ":")
+	if cd == nil {
+		return fmt.Errorf("failed to find pod for %s, container \"%s\"", args[0], e.C_Container)
+	}
 
-	execArgs := []string{"kubectl", "--kubeconfig", "/home/darren/.gpath/142651f86a7318730641c8f1ca6c6150cbba0718/src/github.com/rancher/rio/a", "-v=9", "-n", podNS, "exec"}
+	podNS, podName, containerName := cd.Pod.Namespace, cd.Pod.Name, cd.Container.Name
+
+	execArgs := []string{"kubectl"}
+	if logrus.GetLevel() >= logrus.DebugLevel {
+		execArgs = append(execArgs, "-v=9")
+	}
+	execArgs = append(execArgs, "-n", podNS, "exec")
 	if e.I_Stdin {
 		execArgs = append(execArgs, "-i")
 	}
@@ -51,72 +60,11 @@ func (e *Exec) Run(app *cli.Context) error {
 	execArgs = append(execArgs, podName, "-c", containerName)
 	execArgs = append(execArgs, args[1:]...)
 
-	fmt.Println("RUNNING", execArgs)
-
-	//cmd := exec.Command(execArgs[0], execArgs[1:]...)
+	logrus.Debugf("%v, KUBECONFIG=%s", execArgs, os.Getenv("KUBECONFIG"))
 	cmd := reexec.Command(execArgs...)
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 
 	return cmd.Run()
-}
-
-func FindPodAndContainer(name string, c *spaceclient.Client) (*spaceclient.Pod, string, error) {
-	podID, containerName := kv.Split(name, "/")
-	stackName, serviceName := kv.Split(name, "/")
-	if serviceName == "" {
-		serviceName = stackName
-		stackName = "default"
-	}
-
-	pods, err := c.Pod.List(nil)
-	if err != nil {
-		return nil, "", err
-	}
-
-	for i, pod := range pods.Data {
-		if pod.ID == podID {
-			containerName, ok := findContainerInPod(&pod, containerName)
-			if ok {
-				return &pods.Data[i], containerName, nil
-			}
-			return nil, "", fmt.Errorf("not found: %s", name)
-		}
-
-		if pod.Labels["rio.cattle.io/service"] == serviceName {
-			ns := pod.Labels["rio.cattle.io/namespace"]
-			i := strings.LastIndex(ns, "-")
-			if i <= 0 {
-				continue
-			}
-
-			if stackName == ns[:i] {
-				containerName, ok := findContainerInPod(&pod, containerName)
-				if ok {
-					return &pod, containerName, nil
-				}
-			}
-		}
-	}
-
-	return nil, "", fmt.Errorf("not found: %s", name)
-}
-
-func findContainerInPod(pod *spaceclient.Pod, containerName string) (string, bool) {
-	if containerName == "" {
-		return pod.Containers[0].Name, true
-	}
-	for _, container := range pod.Containers {
-		if container.Name == containerName {
-			return containerName, true
-		}
-	}
-	for _, container := range pod.InitContainers {
-		if container.Name == containerName {
-			return containerName, true
-		}
-	}
-
-	return containerName, false
 }

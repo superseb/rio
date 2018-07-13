@@ -9,11 +9,15 @@ import (
 	"k8s.io/kubernetes/cmd/server"
 )
 
-func router(serverConfig *server.ServerConfig, api, k3s http.Handler) http.Handler {
+func router(serverConfig *server.ServerConfig, api, k3s, tunnel http.Handler) http.Handler {
+	if k3s == nil {
+		k3s = api
+	}
+
 	authed := mux.NewRouter()
 	authed.Use(authMiddleware(serverConfig))
 	authed.NotFoundHandler = k3s
-	authed.Path("/v1beta1/connect").Handler(newTunnel())
+	authed.Path("/v1beta1/connect").Handler(tunnel)
 	authed.PathPrefix("/v1beta1").Handler(api)
 	authed.Path("/node.crt").Handler(nodeCrt(serverConfig))
 	authed.Path("/node.key").Handler(nodeKey(serverConfig))

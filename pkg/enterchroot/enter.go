@@ -23,7 +23,7 @@ const (
 
 func init() {
 	reexec.Register("enter-root", enter)
-	if os.Getenv("DEBUG") == "true" {
+	if os.Getenv("ENTER_DEBUG") == "true" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
 }
@@ -37,6 +37,10 @@ func enter() {
 }
 
 func Mount(dataDir string) error {
+	if logrus.GetLevel() >= logrus.DebugLevel {
+		os.Setenv("ENTER_DEBUG", "true")
+	}
+
 	root, offset, err := findRoot()
 	if err != nil {
 		return err
@@ -82,7 +86,8 @@ func Mount(dataDir string) error {
 		Path: reexec.Self(),
 		Args: append([]string{"enter-root"}, os.Args[1:]...),
 		SysProcAttr: &syscall.SysProcAttr{
-			Cloneflags: syscall.CLONE_NEWPID | syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC | syscall.CLONE_NEWNS,
+			Cloneflags:   syscall.CLONE_NEWPID | syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC,
+			Unshareflags: syscall.CLONE_NEWNS,
 		},
 		Stdout: os.Stdout,
 		Stdin:  os.Stdin,

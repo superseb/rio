@@ -1,4 +1,4 @@
-package stackdeploy
+package deploy
 
 import (
 	"net/url"
@@ -41,7 +41,7 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 		Command:         container.Entrypoint,
 		Args:            container.Command,
 		WorkingDir:      container.WorkingDir,
-		ImagePullPolicy: v1.PullPolicy(container.ImagePullPolicy),
+		ImagePullPolicy: v1.PullIfNotPresent,
 		SecurityContext: &v1.SecurityContext{
 			ReadOnlyRootFilesystem: &container.ReadonlyRootfs,
 			Capabilities: &v1.Capabilities{
@@ -58,6 +58,13 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 		},
 	}
 
+	switch container.ImagePullPolicy {
+	case "never":
+		c.ImagePullPolicy = v1.PullNever
+	case "always":
+		c.ImagePullPolicy = v1.PullAlways
+	}
+
 	populateResources(&c, container)
 
 	if n, err := strconv.ParseInt(container.User, 10, 0); err == nil {
@@ -72,7 +79,42 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 		addVolumes(&c, volume, volumes, volumeDefs, usedTemplates)
 	}
 
+	addConfigs(&c, container, volumes)
+
 	return c
+}
+
+func addConfigs(c *v1.Container, container v1beta1.ContainerConfig, volumes map[string]v1.Volume) {
+	for _, config := range container.Configs {
+		name := "config-" + config.Source
+		var mode *int32
+		if config.Mode != "" {
+			r, err := strconv.ParseInt(config.Mode, 8, 32)
+			if err == nil {
+				r32 := int32(r)
+				mode = &r32
+			}
+		}
+
+		volumes[name] = v1.Volume{
+			Name: name,
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: config.Source,
+					},
+					DefaultMode: mode,
+				},
+			},
+		}
+
+		c.VolumeMounts = append(c.VolumeMounts, v1.VolumeMount{
+			Name:      name,
+			MountPath: config.Target,
+			SubPath:   "content",
+		})
+	}
+
 }
 
 func populateEnv(c *v1.Container, container v1beta1.ContainerConfig) {
@@ -172,12 +214,12 @@ func toEnvVar(containerName, name, value string) v1.EnvVar {
 }
 
 func populateResources(c *v1.Container, container v1beta1.ContainerConfig) {
-	if container.MemoryBytes > 0 {
-		c.Resources.Limits[v1.ResourceMemory] = *resource.NewQuantity(container.MemoryBytes, resource.DecimalSI)
+	if container.MemoryLimitBytes > 0 {
+		c.Resources.Limits[v1.ResourceMemory] = *resource.NewQuantity(container.MemoryLimitBytes, resource.DecimalSI)
 	}
 
 	if container.MemoryReservationBytes > 0 {
-		c.Resources.Requests[v1.ResourceMemory] = *resource.NewQuantity(container.MemoryBytes, resource.DecimalSI)
+		c.Resources.Requests[v1.ResourceMemory] = *resource.NewQuantity(container.MemoryReservationBytes, resource.DecimalSI)
 	}
 
 	if container.CPUs != "" {

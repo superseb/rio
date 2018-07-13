@@ -7,9 +7,9 @@ cd $(dirname $0)/..
 
 mkdir -p bin
 echo Building incluster
-go build -ldflags "-X main.VERSION=$VERSION -linkmode external -extldflags -static -s" -o bin/rio-incluster
+go build -ldflags "-X main.VERSION=$VERSION -s" -o bin/rio-incluster
 echo Building cli full
-go build -tags k3s -ldflags "-X main.VERSION=$VERSION -linkmode external -extldflags -static -s" -o bin/rio-full ./cli/main.go
+go build -tags k3s -ldflags "-X main.VERSION=$VERSION -linkmode external -s" -o bin/rio-full ./cli/main.go
 echo Building agent
 go build -tags k3s -ldflags "-X main.VERSION=$VERSION -s" -o bin/rio-agent ./agent/main.go
 echo Building windows CLI

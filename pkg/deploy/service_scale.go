@@ -1,4 +1,4 @@
-package stackdeploy
+package deploy
 
 import (
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"

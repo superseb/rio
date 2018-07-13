@@ -9,7 +9,6 @@ import (
 	"github.com/rancher/rio/controllers/backend/stack"
 	"github.com/rancher/rio/controllers/backend/stackdeploy"
 	"github.com/rancher/rio/controllers/backend/volume"
-	"github.com/rancher/rio/envoy/controller"
 	"github.com/rancher/rio/types"
 )
 
@@ -22,7 +21,6 @@ func Register(ctx context.Context, rContext *types.Context) error {
 	stackdeploy.Register(ctx, rContext)
 	service.Register(ctx, rContext)
 	node.Register(ctx, rContext)
-	controller.Register(ctx, rContext)
 	volume.Register(ctx, rContext)
 	return nil
 }

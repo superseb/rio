@@ -28,8 +28,9 @@ func Remove(app *cli.Context, types ...string) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
-	w, err := waiter.NewWaiter(app)
+	w, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}

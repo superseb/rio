@@ -38,6 +38,13 @@ import (
 	"k8s.io/kubernetes/cmd/agent"
 )
 
+var (
+	ports = map[string]bool{
+		"10250": true,
+		"10010": true,
+	}
+)
+
 type AgentConfig struct {
 	LocalVolumeDir string
 	Config         *agent.AgentConfig
@@ -93,9 +100,9 @@ func run() error {
 	//	return err
 	//}
 
-	if err := runLocalStorage(agentConfig); err != nil {
-		return err
-	}
+	//if err := runLocalStorage(agentConfig); err != nil {
+	//	return err
+	//}
 
 	<-ctx.Done()
 	return nil
@@ -201,8 +208,8 @@ func runTunnel(config *AgentConfig) error {
 		for {
 			logrus.Infof("Connecting to %s", wsURL)
 			remotedialer.ClientConnect(wsURL, http.Header(headers), ws, func(proto, address string) bool {
-				_, port, err := net.SplitHostPort(address)
-				return err != nil && proto == "tcp" && port == "10250"
+				host, port, err := net.SplitHostPort(address)
+				return err == nil && proto == "tcp" && ports[port] && host == "127.0.0.1"
 			}, func(_ context.Context) error {
 				once.Do(wg.Done)
 				return nil

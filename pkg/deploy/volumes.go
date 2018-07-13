@@ -1,4 +1,4 @@
-package stackdeploy
+package deploy
 
 import (
 	"fmt"
@@ -8,7 +8,6 @@ import (
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -45,13 +44,8 @@ func volumeToPVC(namespace string, labels map[string]string, volume v1beta1.Volu
 	return cfg, nil
 }
 
-func (s *stackDeployController) volumes(objects []runtime.Object, namespace string) ([]*v1beta1.Volume, []runtime.Object, error) {
-	volumes, err := s.volumeLister.List(namespace, labels.Everything())
-	if err != nil {
-		return volumes, objects, err
-	}
-
-	for _, volume := range volumes {
+func volumes(objects []runtime.Object, stack *StackResources, namespace string) ([]runtime.Object, error) {
+	for _, volume := range stack.Volumes {
 		if volume.Spec.Template {
 			continue
 		}
@@ -63,13 +57,13 @@ func (s *stackDeployController) volumes(objects []runtime.Object, namespace stri
 
 		cfg, err := volumeToPVC(namespace, labels, *volume)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		objects = append(objects, cfg)
 	}
 
-	return volumes, objects, nil
+	return objects, nil
 }
 
 func newVolume(name, namespace string, labels map[string]string) *v1.PersistentVolumeClaim {

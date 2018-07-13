@@ -17,8 +17,9 @@ func (p *Promote) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
-	w, err := waiter.NewWaiter(app)
+	w, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}

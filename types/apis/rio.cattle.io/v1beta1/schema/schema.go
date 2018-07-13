@@ -57,12 +57,21 @@ func serviceTypes(schemas *types.Schemas) *types.Schemas {
 			},
 			&mapper.Embed{Field: "status"},
 		).
+		AddMapperForType(&Version, v1beta1.ServiceSpec{},
+			mapper.Move{From: "labels", To: "serviceLabels"},
+			rm.NewMetadata("metadata"),
+		).
+		AddMapperForType(&Version, v1beta1.ServiceUnversionedSpec{},
+			rm.NewMetadata("metadata"),
+		).
 		AddMapperForType(&Version, v1beta1.ServiceStatus{},
 			&rm.DeploymentStatus{},
 			mapper.Drop{Field: "deploymentStatus"},
 		).
 		AddMapperForType(&Version, v1beta1.Service{},
 			mapper.Drop{Field: "namespace"},
+			mapper.Drop{Field: "labels"},
+			mapper.Move{From: "serviceLabels", To: "labels"},
 		)
 }
 

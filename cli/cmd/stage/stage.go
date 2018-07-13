@@ -46,6 +46,7 @@ func (r *Stage) Run(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	resource, err := lookup.Lookup(ctx.Client, app.Args()[0], client.ServiceType)
 	if err != nil {
@@ -90,7 +91,7 @@ func (r *Stage) Run(app *cli.Context) error {
 		return err
 	}
 
-	w, err := waiter.NewWaiter(app)
+	w, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}

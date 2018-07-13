@@ -17,6 +17,7 @@ func Node() cli.Command {
 		Usage:     "Operations on nodes",
 		Action:    defaultAction(nodeLs),
 		Flags:     table.WriterFlags(),
+		Category:  "SUB COMMANDS",
 		Subcommands: []cli.Command{
 			{
 				Name:      "ls",
@@ -46,6 +47,7 @@ func nodeLs(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	c, err := ctx.SpaceClient()
 	if err != nil {
@@ -83,10 +85,11 @@ func nodeRm(app *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	defer ctx.Close()
 
 	names := app.Args()
 
-	w, err := waiter.NewWaiter(app)
+	w, err := waiter.NewWaiter(ctx)
 	if err != nil {
 		return err
 	}

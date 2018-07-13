@@ -1,8 +1,17 @@
 #!/usr/bin/sh
 set -e
 
-[ -L lib64 ] || ln -sf lib lib64
+if [ "$ENTER_DEBUG" = true ]; then
+    set -x
+fi
+
+ln()
+{
+    /usr/lib/ld-linux-x86-64.so.2 /usr/bin/coreutils --coreutils-prog=ln "$@"
+}
+
 ln -sf usr/lib usr/bin usr/sbin .
+[ -L lib64 ] || ln -sf lib lib64
 
 mkdir -p /proc
 mount -t proc -o nodev,nosuid,noexec,relatime none /proc
@@ -41,26 +50,12 @@ for i in  /host/usr/lib/os-release /host/etc/os-release; do
         cp -f $i /etc/os-release
     fi
 done
-
 mkdir -p /tmp
 mount -t tmpfs none /tmp
 
 hostname > /etc/hostname
-if [ -f /host/etc/resolv.conf ]; then
-    ln -sf /host/etc/resolv.conf /etc/resolv.conf
-else
-    echo Failing back to 8.8.8.8 DNS 1>&2
-    rm -f /etc/resolv.conf
-    echo 'nameserver 8.8.8.8' > /etc/resolv.conf
-fi
 
-if [ -e /host/etc/machine-id ]; then
-    ln -sf /host/etc/machine-id /etc/machine-id
-fi
-
-for i in $(cat /proc/mounts  | awk '{print $2}' | grep .root | sort -r); do
-    umount $i 2>/dev/null
-done
+umount -l .root
 
 rmdir .root
 
@@ -108,6 +103,24 @@ export NODE_NAME=$(hostname | cut -f1 -d.)
 if [ "$1" == "--" ]; then
     shift 1
     exec "$@"
+fi
+
+cat > /etc/hosts << EOF
+127.0.0.1	localhost $NODE_NAME
+::1		localhost ip6-localhost ip6-loopback
+ff02::1		ip6-allnodes
+ff02::2		ip6-allrouters
+EOF
+
+ln -sf /host/etc/resolv.conf /etc/resolv.conf
+if ! grep -q nameserver /host/etc/resolv.conf; then
+    echo Failing back to 8.8.8.8 DNS 1>&2
+    rm -f /etc/resolv.conf
+    echo 'nameserver 8.8.8.8' > /etc/resolv.conf
+fi
+
+if [ -e /host/etc/machine-id ]; then
+    ln -sf /host/etc/machine-id /etc/machine-id
 fi
 
 mkdir -p /run/rio/containerd
