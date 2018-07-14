@@ -41,16 +41,10 @@ func Run() {
 	}
 	app := command.App()
 	go func() {
-		//cmd := exec.Command(args[0], args[1:]...)
-		//cmd.Stdout = os.Stdout
-		//cmd.Stderr = os.Stderr
-		//err := cmd.Run()
-		//fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
-		//os.Exit(1)
 		if err := app.Run(args); err != nil {
 			fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
-			os.Exit(1)
 		}
+		os.Exit(1)
 	}()
 
 	time.Sleep(1 * time.Second)

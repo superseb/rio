@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/rancher/rancher/pkg/remotedialer"
-	"k8s.io/kubernetes/staging/src/k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func authorizer(req *http.Request) (clientKey string, authed bool, err error) {
