@@ -10,9 +10,9 @@ rio
 
 ## Building
 
-There is no chance you'll be able to get this to compile.  The vendor deps are a complete mess
-right now and not checked in.  I'm still cleaning up a lot of hacks I've done, so that this
-can compile with proper deps.
+`make`
+
+The first build will take about an hour (sorry).
 
 ## Running
 
