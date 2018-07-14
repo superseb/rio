@@ -100,11 +100,6 @@ mount --make-shared /
 
 export NODE_NAME=$(hostname | cut -f1 -d.)
 
-if [ "$1" == "--" ]; then
-    shift 1
-    exec "$@"
-fi
-
 cat > /etc/hosts << EOF
 127.0.0.1	localhost $NODE_NAME
 ::1		localhost ip6-localhost ip6-loopback
@@ -125,7 +120,14 @@ fi
 
 mkdir -p /run/rio/containerd
 
+cat /etc/containerd/config.toml.tmpl | sed "s/%NODE%/${NODE_NAME}/" > /etc/containerd/config.toml
+
 # Cleanup networking since there seems to be a bug
 rm -rf /var/lib/cni/networks/cbr0/10.42* 2>/dev/null || true
+
+if [ "$1" == "--" ]; then
+    shift 1
+    exec "$@"
+fi
 
 exec env -i -- HOME=/root PATH=/sbin:/bin NODE_NAME=$NODE_NAME RIO_URL=$RIO_URL RIO_TOKEN=$RIO_TOKEN RIO_DATA_DIR=$RIO_DATA_DIR agent

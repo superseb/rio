@@ -1,5 +1,3 @@
-FROM envoyproxy/envoy:latest AS envoy
-
 FROM golang:1.10 AS cni
 RUN mkdir -p $GOPATH/src/github.com/containernetworking && \
     cd $GOPATH/src/github.com/containernetworking && \
@@ -51,7 +49,7 @@ RUN cd /usr/src/image/share/cni/bin && \
     ;done
 
 RUN mkdir -p /usr/src/image/etc/containerd
-COPY config.toml /usr/src/image/etc/containerd/config.toml
+COPY config.toml.tmpl /usr/src/image/etc/containerd/config.toml.tmpl
 COPY init /usr/src/image/init
 
 RUN mkdir -p /usr/src/image/etc/cni/net.d
@@ -62,9 +60,6 @@ COPY inittab /usr/src/image/etc/inittab
 
 RUN mkdir -p /usr/src/image/etc/kube-flannel
 COPY net-conf.json /usr/src/image/etc/kube-flannel/
-
-COPY envoy.yaml /etc/envoy/envoy.yaml
-COPY --from=envoy /usr/local/bin/envoy /usr/src/image/bin/envoy
 
 COPY agent /usr/src/image/bin/agent
 

@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/coreos/flannel"
-	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/signal"
@@ -27,7 +26,6 @@ import (
 	"github.com/rancher/rio/agent/containerd"
 	"github.com/rancher/rio/pkg/clientaccess"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -88,6 +86,10 @@ func run() error {
 		return err
 	}
 
+	if err := waitForNode(agentConfig); err != nil {
+		return err
+	}
+
 	if err := runFlannel(agentConfig.Config); err != nil {
 		return err
 	}
@@ -132,12 +134,33 @@ func run() error {
 //	return nil
 //}
 
-func getNode(client *kubernetes.Clientset, name string) *v1.Node {
-	node, err := client.CoreV1().Nodes().Get(name, metav1.GetOptions{})
+func waitForNode(config *AgentConfig) error {
+	os.Setenv("KUBECONFIG", config.Config.KubeConfig)
+
+	nodeName := config.Config.NodeName
+
+	restConfig, err := clientcmd.BuildConfigFromFlags("", config.Config.KubeConfig)
 	if err != nil {
-		glog.Fatalf("Could not get node information: %v", err)
+		return err
 	}
-	return node
+
+	client, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return err
+	}
+
+	for {
+		node, err := client.CoreV1().Nodes().Get(nodeName, metav1.GetOptions{})
+		if err == nil && node.Spec.PodCIDR != "" {
+			return nil
+		}
+		if err == nil {
+			logrus.Infof("waiting for node %s CIDR not assigned yet", nodeName)
+		} else {
+			logrus.Infof("waiting for node %s: %v", nodeName, err)
+		}
+		time.Sleep(2 * time.Second)
+	}
 }
 
 func runTunnel(config *AgentConfig) error {
