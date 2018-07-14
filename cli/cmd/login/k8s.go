@@ -54,13 +54,12 @@ func (l *Login) k8s(tempFile string) (bool, error) {
 			_, err := server.SpaceClient(tempFile, k8s)
 			if err == nil {
 				return
-			} else {
-				fmt.Println(err)
-				if i == 1 {
-					logrus.Infof("Waiting for to connect to Rio")
-				}
-				time.Sleep(2 * time.Second)
 			}
+			fmt.Println(err)
+			if i == 1 {
+				logrus.Infof("Waiting for to connect to Rio")
+			}
+			time.Sleep(2 * time.Second)
 		}
 	}()
 

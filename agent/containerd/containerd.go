@@ -5,8 +5,9 @@ import (
 	"os"
 	"time"
 
-	// containerd builtin
 	"github.com/containerd/containerd/cmd/containerd/command"
+
+	// containerd builtin
 	_ "github.com/containerd/containerd/diff/walking/plugin"
 	_ "github.com/containerd/containerd/gc/scheduler"
 	_ "github.com/containerd/containerd/services/containers"

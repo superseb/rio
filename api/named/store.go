@@ -34,7 +34,7 @@ func (s *Store) Create(apiContext *types.APIContext, schema *types.Schema, data 
 		err   error
 	)
 
-	stackId, _ := data["stackId"].(string)
+	stackID, _ := data["stackId"].(string)
 	name, _ := data["name"].(string)
 	gen := false
 	if name == "" {
@@ -48,7 +48,7 @@ func (s *Store) Create(apiContext *types.APIContext, schema *types.Schema, data 
 		err = access.List(apiContext, &schema.Version, schema.ID, &types.QueryOptions{
 			Conditions: []*types.QueryCondition{
 				types.EQ("name", name),
-				types.EQ("stackId", stackId),
+				types.EQ("stackId", stackID),
 			},
 		}, &datas)
 		if err != nil {

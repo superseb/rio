@@ -10,7 +10,7 @@ import (
 func health(schemas *types.Schemas) *types.Schemas {
 	return schemas.
 		AddMapperForType(&Version, client.HealthConfig{},
-			pm.Shlex{"test"},
+			pm.Shlex{Field: "test"},
 			mapper.Move{From: "intervalSeconds", To: "interval"},
 			pm.Duration{Field: "interval"},
 			pm.AliasField{Field: "interval", Names: []string{"period", "periodSeconds"}},

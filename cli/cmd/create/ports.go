@@ -67,14 +67,14 @@ func parsePortBinding(spec string) (client.PortBinding, error) {
 	if port != "" {
 		result.Port, err = strconv.ParseInt(port, 10, 0)
 		if err != nil {
-			return result, fmt.Errorf("invalid port number %d: %v", port, err)
+			return result, fmt.Errorf("invalid port number %s: %v", port, err)
 		}
 	}
 
 	targetPort, proto := kv.Split(targetPortPair, "/")
 	result.TargetPort, err = strconv.ParseInt(targetPort, 10, 0)
 	if err != nil {
-		return result, fmt.Errorf("invalid target port number %d: %v", targetPort, err)
+		return result, fmt.Errorf("invalid target port number %s: %v", targetPort, err)
 	}
 
 	if proto == "" {

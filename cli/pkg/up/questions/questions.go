@@ -133,7 +133,7 @@ func (q *question) prompt() (string, error) {
 
 		err = validate(answer, q.q)
 		if err != nil {
-			fmt.Println("invalid value: %v", err)
+			fmt.Printf("invalid value: %v\n", err)
 			continue
 		}
 
