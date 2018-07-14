@@ -5,8 +5,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/cmd/server"
-	"k8s.io/kubernetes/staging/src/k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func doAuth(serverConfig *server.ServerConfig, next http.Handler, rw http.ResponseWriter, req *http.Request) {

@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -21,9 +20,6 @@ import (
 	"github.com/coreos/flannel"
 	"github.com/golang/glog"
 	"github.com/gorilla/websocket"
-	"github.com/kubernetes-incubator/external-storage/local-volume/provisioner/pkg/common"
-	"github.com/kubernetes-incubator/external-storage/local-volume/provisioner/pkg/controller"
-	"github.com/kubernetes-incubator/external-storage/local-volume/provisioner/pkg/deleter"
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/signal"
 	proxy2 "github.com/rancher/rancher/pkg/clusterrouter/proxy"
@@ -96,10 +92,6 @@ func run() error {
 		return err
 	}
 
-	//if err := runEnvoy(); err != nil {
-	//	return err
-	//}
-
 	//if err := runLocalStorage(agentConfig); err != nil {
 	//	return err
 	//}
@@ -108,37 +100,37 @@ func run() error {
 	return nil
 }
 
-func runLocalStorage(config *AgentConfig) error {
-	os.Setenv("KUBECONFIG", config.Config.KubeConfig)
-
-	provisionerConfig := common.ProvisionerConfiguration{
-		StorageClassConfig: map[string]common.MountConfig{
-			"local": {
-				HostDir:  config.LocalVolumeDir,
-				MountDir: config.LocalVolumeDir,
-			},
-		},
-		MinResyncPeriod: metav1.Duration{Duration: 5 * time.Minute},
-	}
-
-	nodeName := config.Config.NodeName
-
-	client := common.SetupClient()
-	node := getNode(client, nodeName)
-
-	glog.Info("Starting controller\n")
-	procTable := deleter.NewProcTable()
-	go controller.StartLocalController(client, procTable, &common.UserConfig{
-		Node:              node,
-		DiscoveryMap:      provisionerConfig.StorageClassConfig,
-		NodeLabelsForPV:   provisionerConfig.NodeLabelsForPV,
-		UseAlphaAPI:       provisionerConfig.UseAlphaAPI,
-		UseJobForCleaning: provisionerConfig.UseJobForCleaning,
-		MinResyncPeriod:   provisionerConfig.MinResyncPeriod,
-	})
-
-	return nil
-}
+//func runLocalStorage(config *AgentConfig) error {
+//	os.Setenv("KUBECONFIG", config.Config.KubeConfig)
+//
+//	provisionerConfig := common.ProvisionerConfiguration{
+//		StorageClassConfig: map[string]common.MountConfig{
+//			"local": {
+//				HostDir:  config.LocalVolumeDir,
+//				MountDir: config.LocalVolumeDir,
+//			},
+//		},
+//		MinResyncPeriod: metav1.Duration{Duration: 5 * time.Minute},
+//	}
+//
+//	nodeName := config.Config.NodeName
+//
+//	client := common.SetupClient()
+//	node := getNode(client, nodeName)
+//
+//	glog.Info("Starting controller\n")
+//	procTable := deleter.NewProcTable()
+//	go controller.StartLocalController(client, procTable, &common.UserConfig{
+//		Node:              node,
+//		DiscoveryMap:      provisionerConfig.StorageClassConfig,
+//		NodeLabelsForPV:   provisionerConfig.NodeLabelsForPV,
+//		UseAlphaAPI:       provisionerConfig.UseAlphaAPI,
+//		UseJobForCleaning: provisionerConfig.UseJobForCleaning,
+//		MinResyncPeriod:   provisionerConfig.MinResyncPeriod,
+//	})
+//
+//	return nil
+//}
 
 func getNode(client *kubernetes.Clientset, name string) *v1.Node {
 	node, err := client.CoreV1().Nodes().Get(name, metav1.GetOptions{})
@@ -146,27 +138,6 @@ func getNode(client *kubernetes.Clientset, name string) *v1.Node {
 		glog.Fatalf("Could not get node information: %v", err)
 	}
 	return node
-}
-
-func runEnvoy() error {
-	go func() {
-		cmd := exec.Command("envoy",
-			"--v2-config-only",
-			"-l",
-			"info",
-			"-c",
-			"/etc/envoy/envoy.yaml",
-			"--service-cluster",
-			"cluster",
-			"--service-node",
-			"localhost")
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = os.Stdout
-		err := cmd.Run()
-		logrus.Fatalf("envoy exited: %v", err)
-	}()
-
-	return nil
 }
 
 func runTunnel(config *AgentConfig) error {

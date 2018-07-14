@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/docker/cli/cli/compose/loader"
 	"github.com/docker/cli/cli/compose/types"
 	"github.com/rancher/rio/cli/pkg/kv"
+	"github.com/rancher/rio/cli/pkg/volumespec"
 	"github.com/rancher/rio/types/client/rio/v1beta1"
 )
 
 func ParseMounts(spec []string) ([]client.Mount, error) {
 	var mounts []client.Mount
 	for _, volume := range spec {
-		serviceMount, err := loader.ParseVolume(volume)
+		serviceMount, err := volumespec.ParseVolume(volume)
 		if err != nil {
 			return nil, err
 		}

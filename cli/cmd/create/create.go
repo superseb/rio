@@ -3,7 +3,7 @@ package create
 import (
 	"fmt"
 
-	"github.com/docker/cli/opts"
+	"github.com/rancher/rio/cli/pkg/kvfile"
 	"github.com/rancher/rio/cli/pkg/waiter"
 	"github.com/rancher/rio/cli/server"
 	"github.com/rancher/rio/types/client/rio/v1beta1"
@@ -193,7 +193,7 @@ func (c *Create) ToService(args []string) (*client.Service, error) {
 		return nil, err
 	}
 
-	service.Environment, err = opts.ReadKVEnvStrings(c.EnvFile, c.E_Env)
+	service.Environment, err = kvfile.ReadKVEnvStrings(c.EnvFile, c.E_Env)
 	if err != nil {
 		return nil, err
 	}

@@ -3,8 +3,10 @@ package containerd
 import (
 	"fmt"
 	"os"
+	"time"
 
 	// containerd builtin
+	"github.com/containerd/containerd/cmd/containerd/command"
 	_ "github.com/containerd/containerd/diff/walking/plugin"
 	_ "github.com/containerd/containerd/gc/scheduler"
 	_ "github.com/containerd/containerd/services/containers"
@@ -24,10 +26,6 @@ import (
 	_ "github.com/containerd/cri"
 
 	// containerd linux
-	"os/exec"
-
-	"time"
-
 	_ "github.com/containerd/containerd/linux"
 	_ "github.com/containerd/containerd/metrics/cgroups"
 	_ "github.com/containerd/containerd/snapshots/native"
@@ -40,18 +38,18 @@ func Run() {
 		"-a", "/run/rio/containerd.sock",
 		"--state", "/run/rio/containerd",
 	}
-	//app := command.App()
+	app := command.App()
 	go func() {
-		cmd := exec.Command(args[0], args[1:]...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		err := cmd.Run()
-		fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
-		os.Exit(1)
-		//if err := app.Run(args); err != nil {
-		//	fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
-		//	os.Exit(1)
-		//}
+		//cmd := exec.Command(args[0], args[1:]...)
+		//cmd.Stdout = os.Stdout
+		//cmd.Stderr = os.Stderr
+		//err := cmd.Run()
+		//fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
+		//os.Exit(1)
+		if err := app.Run(args); err != nil {
+			fmt.Fprintf(os.Stderr, "containerd: %s\n", err)
+			os.Exit(1)
+		}
 	}()
 
 	time.Sleep(1 * time.Second)

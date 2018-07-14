@@ -1,12 +1,12 @@
 package create
 
 import (
-	"github.com/docker/cli/opts"
 	"github.com/rancher/rio/cli/pkg/kv"
+	"github.com/rancher/rio/cli/pkg/kvfile"
 )
 
 func parseLabels(files []string, override map[string]string) (map[string]string, error) {
-	labels, err := opts.ReadKVStrings(files, nil)
+	labels, err := kvfile.ReadKVStrings(files, nil)
 	if err != nil {
 		return nil, err
 	}
