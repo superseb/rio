@@ -94,6 +94,10 @@ for i in $(seq 0 20); do
     done
 done
 
+# good ole system
+mkdir -p /sys/fs/cgroup/systemd
+mount -t cgroup -o none,name=systemd cgroup /sys/fs/cgroup/systemd
+
 rm /tmp/cgroups
 
 mount --make-shared /

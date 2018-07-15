@@ -1,16 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"fmt"
 
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/rio/cli/cmd/agent"
 	"github.com/rancher/rio/cli/cmd/config"
 	"github.com/rancher/rio/cli/cmd/create"
+	"github.com/rancher/rio/cli/cmd/ctr"
 	"github.com/rancher/rio/cli/cmd/edit"
 	"github.com/rancher/rio/cli/cmd/exec"
 	"github.com/rancher/rio/cli/cmd/export"
@@ -197,6 +197,7 @@ func main() {
 			""),
 
 		kubectl.NewKubectlCommand(),
+		ctr.NewCtrCommand(),
 	}
 	app.Before = func(ctx *cli.Context) error {
 		if ctx.GlobalBool("debug") {

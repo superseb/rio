@@ -3,10 +3,6 @@ set -e
 
 cd $(dirname $0)
 
-if [ -e go_build_agent ]; then
-    mv -f go_build_agent agent
-fi
-
 sudo rm -rf root main.squashfs
 docker build -t bb .
 mkdir root

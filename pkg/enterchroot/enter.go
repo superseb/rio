@@ -23,12 +23,13 @@ const (
 
 func init() {
 	reexec.Register("enter-root", enter)
-	if os.Getenv("ENTER_DEBUG") == "true" {
-		logrus.SetLevel(logrus.DebugLevel)
-	}
 }
 
 func enter() {
+	if os.Getenv("ENTER_DEBUG") == "true" {
+		logrus.SetLevel(logrus.DebugLevel)
+	}
+
 	logrus.Debug("Running bootstrap")
 	err := run(os.Getenv("ENTER_DATA"))
 	if err != nil {
