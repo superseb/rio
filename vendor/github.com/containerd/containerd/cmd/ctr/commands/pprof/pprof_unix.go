@@ -1,3 +1,5 @@
+// +build !windows
+
 /*
    Copyright The containerd Authors.
 
@@ -14,16 +16,14 @@
    limitations under the License.
 */
 
-package version
+package pprof
 
-var (
-	// Package is filled at linking time
-	Package = "github.com/containerd/containerd"
+import "net"
 
-	// Version holds the complete version number. Filled in at linking time.
-	Version = "1.1.2+unknown"
+func (d *pprofDialer) pprofDial(proto, addr string) (conn net.Conn, err error) {
+	return net.Dial(d.proto, d.addr)
+}
 
-	// Revision is filled with the VCS (e.g. git) revision being used to build
-	// the program at linking time.
-	Revision = ""
-)
+func getPProfDialer(addr string) *pprofDialer {
+	return &pprofDialer{"unix", addr}
+}

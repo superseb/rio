@@ -118,7 +118,20 @@ func (k *kv) Get(ctx context.Context, key string, opts ...OpOption) (*GetRespons
 }
 
 func (k *kv) opGet(ctx context.Context, op Op) (*GetResponse, error) {
-	kvs, err := k.d.List(ctx, op.rev, op.limit, op.key, op.boundingKey)
+	var (
+		rangeKey string
+		startKey string
+	)
+
+	if op.boundingKey == "" {
+		rangeKey = op.key
+		startKey = ""
+	} else {
+		rangeKey = op.boundingKey
+		startKey = op.key
+	}
+
+	kvs, err := k.d.List(ctx, op.rev, op.limit, rangeKey, startKey)
 	if err != nil {
 		return nil, err
 	}

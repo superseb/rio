@@ -14,16 +14,33 @@
    limitations under the License.
 */
 
-package version
+package tasks
 
-var (
-	// Package is filled at linking time
-	Package = "github.com/containerd/containerd"
+import (
+	gocontext "context"
 
-	// Version holds the complete version number. Filled in at linking time.
-	Version = "1.1.2+unknown"
-
-	// Revision is filled with the VCS (e.g. git) revision being used to build
-	// the program at linking time.
-	Revision = ""
+	"github.com/urfave/cli"
 )
+
+type resizer interface {
+	Resize(ctx gocontext.Context, w, h uint32) error
+}
+
+// Command is the cli command for managing tasks
+var Command = cli.Command{
+	Name:    "tasks",
+	Usage:   "manage tasks",
+	Aliases: []string{"t", "task"},
+	Subcommands: []cli.Command{
+		attachCommand,
+		checkpointCommand,
+		deleteCommand,
+		execCommand,
+		listCommand,
+		killCommand,
+		pauseCommand,
+		psCommand,
+		resumeCommand,
+		startCommand,
+	},
+}
