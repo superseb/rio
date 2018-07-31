@@ -5,6 +5,7 @@ import (
 
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/mapper"
 )
 
 type AliasValue struct {
@@ -32,6 +33,6 @@ func (d AliasValue) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (AliasValue) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d AliasValue) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(d.Field, schema)
 }

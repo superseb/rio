@@ -5,11 +5,13 @@ import (
 
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/mapper"
 	"github.com/rancher/rio/cli/cmd/create"
 )
 
 type Duration struct {
 	Field string
+	Unit  time.Duration
 }
 
 func (d Duration) FromInternal(data map[string]interface{}) {
@@ -23,7 +25,7 @@ func (d Duration) FromInternal(data map[string]interface{}) {
 		return
 	}
 
-	data[d.Field] = (time.Duration(n) * time.Second).String()
+	data[d.Field] = (time.Duration(n) * d.Unit).String()
 }
 
 func (d Duration) ToInternal(data map[string]interface{}) error {
@@ -33,7 +35,7 @@ func (d Duration) ToInternal(data map[string]interface{}) error {
 	}
 
 	if str, ok := v.(string); ok {
-		sec, err := create.ParseSeconds(str, d.Field)
+		sec, err := create.ParseDurationUnit(str, d.Field, d.Unit)
 		if err != nil {
 			return err
 		}
@@ -43,6 +45,6 @@ func (d Duration) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (Duration) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d Duration) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(d.Field, schema)
 }

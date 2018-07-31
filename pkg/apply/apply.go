@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
+
+	"crypto/sha1"
 
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/ghodss/yaml"
@@ -14,6 +18,17 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
+
+const refreshAfter = 2 * time.Minute
+
+var applied sync.Map
+
+type appliedValue struct {
+	time time.Time
+	hash [20]byte
+}
+
+type ConfigInjector func(config []byte) ([]byte, error)
 
 func Content(content []byte) error {
 	errOutput := &bytes.Buffer{}
@@ -29,7 +44,7 @@ func Content(content []byte) error {
 	return nil
 }
 
-func Apply(objects []runtime.Object, groupID string, generation int64) error {
+func Apply(objects []runtime.Object, groupID string, generation int64, injectors ...ConfigInjector) error {
 	if len(objects) == 0 {
 		return nil
 	}
@@ -39,15 +54,34 @@ func Apply(objects []runtime.Object, groupID string, generation int64) error {
 		return err
 	}
 
-	//content, err = config.Inject(content)
-	//if err != nil {
-	//	return err
-	//}
+	for _, inject := range injectors {
+		if content, err = inject(content); err != nil {
+			return err
+		}
+	}
 
 	return execApply(ns, whitelist, content, groupID)
 }
 
+func ApplyAnyNamespace(objects []runtime.Object, groupID string, generation int64) error {
+	if len(objects) == 0 {
+		return nil
+	}
+
+	_, whitelist, content, err := constructApplyData(objects, groupID, generation)
+	if err != nil {
+		return err
+	}
+
+	return execApply("", whitelist, content, groupID)
+}
+
 func execApply(ns string, whitelist map[string]bool, content []byte, groupID string) error {
+	key, val, ok := shouldApply(ns, content, groupID)
+	if !ok {
+		return nil
+	}
+
 	output := &bytes.Buffer{}
 	errOutput := &bytes.Buffer{}
 	cmd := reexec.Command("kubectl", "-n", ns, "apply", "--force", "--grace-period", "120", "--prune", "-l", "apply.cattle.io/groupID="+groupID, "-o", "json", "-f", "-")
@@ -67,7 +101,32 @@ func execApply(ns string, whitelist map[string]bool, content []byte, groupID str
 		fmt.Printf("Applied: %s", output.String())
 	}
 
+	applied.Store(key, val)
 	return nil
+}
+
+func shouldApply(ns string, content []byte, groupID string) (interface{}, interface{}, bool) {
+	key := ns + "/" + groupID
+	val := &appliedValue{
+		time: time.Now(),
+		hash: sha1.Sum(content),
+	}
+
+	obj, ok := applied.Load(key)
+	if !ok {
+		return key, val, true
+	}
+
+	old := obj.(*appliedValue)
+	if val.time.Sub(old.time) > refreshAfter {
+		return key, val, true
+	}
+
+	if val.hash != old.hash {
+		return key, val, true
+	}
+
+	return key, val, false
 }
 
 func constructApplyData(objects []runtime.Object, groupID string, generation int64) (string, map[string]bool, []byte, error) {

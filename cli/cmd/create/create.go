@@ -19,6 +19,7 @@ type Create struct {
 	Cpus                 string            `desc:"Number of CPUs"`
 	DeploymentStrategy   string            `json:"Approach to creating containers (parallel|ordered)" default:"parallel"`
 	Device               []string          `desc:"Add a host device to the container"`
+	Detach               bool              `desc:"Do not attach after when -it is specified"`
 	Dns                  []string          `desc:"Set custom DNS servers"`
 	DnsOption            []string          `desc:"Set DNS options"`
 	DnsSearch            []string          `desc:"Set custom DNS search domains"`
@@ -29,6 +30,7 @@ type Create struct {
 	GlobalPermission     []string          `desc:"Permissions to grant to container's service account for all stacks"`
 	GroupAdd             []string          `desc:"Add additional groups to join"`
 	HealthCmd            string            `desc:"Command to run to check health"`
+	HealthURL            string            `desc:"URL to hit to check health (example: http://localhost:8080/ping)"`
 	HealthInterval       string            `desc:"Time between running the check (ms|s|m|h)" default:"0s"`
 	HealthRecoverRetries int               `desc:"Consecutive failures needed to report healthy"`
 	HealthRetries        int               `desc:"Consecutive failures needed to report unhealthy"`
@@ -52,6 +54,7 @@ type Create struct {
 	Privileged           bool              `desc:"Give extended privileges to this container"`
 	ReadOnly             bool              `desc:"Mount the container's root filesystem as read only"`
 	Restart              string            `desc:"Restart policy to apply when a container exits" default:"always"`
+	Secret               []string          `desc:"Secrets to inject to the service (format: name:target)"`
 	SecurityOpt          []string          `desc:"Security Options"`
 	StopTimeout          string            `desc:"Timeout (in seconds) to stop a container"`
 	T_Tty                bool              `desc:"Allocate a pseudo-TTY"`
@@ -77,38 +80,39 @@ type Scheduling struct {
 }
 
 func (c *Create) Run(app *cli.Context) error {
-	return c.RunCallback(app, func(s *client.Service) *client.Service {
+	_, err := c.RunCallback(app, func(s *client.Service) *client.Service {
 		return s
 	})
+	return err
 }
 
-func (c *Create) RunCallback(app *cli.Context, cb func(service *client.Service) *client.Service) error {
+func (c *Create) RunCallback(app *cli.Context, cb func(service *client.Service) *client.Service) (*client.Service, error) {
 	var err error
 
 	service, err := c.ToService(app.Args())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	ctx, err := server.NewContext(app)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer ctx.Close()
 
 	service.SpaceID, service.StackID, service.Name, err = ctx.ResolveSpaceStackName(service.Name)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	service = cb(service)
 
 	s, err := ctx.Client.Service.Create(service)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return waiter.WaitFor(ctx, s.ID)
+	return s, waiter.WaitFor(ctx, s.ID)
 }
 
 func (c *Create) ToService(args []string) (*client.Service, error) {
@@ -174,6 +178,11 @@ func (c *Create) ToService(args []string) (*client.Service, error) {
 	}
 
 	service.Configs, err = ParseConfigs(c.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	service.Secrets, err = ParseSecrets(c.Secret)
 	if err != nil {
 		return nil, err
 	}

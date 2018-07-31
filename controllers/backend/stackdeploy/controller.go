@@ -6,8 +6,11 @@ import (
 	"strings"
 
 	"github.com/rancher/rio/cli/pkg/kv"
+	"github.com/rancher/rio/pkg/apply"
 	"github.com/rancher/rio/pkg/deploy"
+	"github.com/rancher/rio/pkg/istio/config"
 	"github.com/rancher/rio/pkg/namespace"
+	"github.com/rancher/rio/pkg/settings"
 	"github.com/rancher/rio/types"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -20,12 +23,21 @@ const (
 )
 
 func Register(ctx context.Context, rContext *types.Context) {
+	istioNamespace := namespace.StackNamespace(settings.RioSystemNamespace, settings.IstioStackName.Get())
+	cf := config.NewConfigFactory(rContext.Core.ConfigMaps(istioNamespace),
+		istioNamespace,
+		settings.IstionConfigMapName,
+		settings.IstionConfigMapKey)
+	injector := config.NewIstioInjector(cf)
+
 	s := &stackDeployController{
+		injector:        injector.Inject,
 		stacks:          rContext.Rio.Stacks(""),
 		stackController: rContext.Rio.Stacks("").Controller(),
 		serviceLister:   rContext.Rio.Services("").Controller().Lister(),
 		configLister:    rContext.Rio.Configs("").Controller().Lister(),
 		volumeLister:    rContext.Rio.Volumes("").Controller().Lister(),
+		routeSetLister:  rContext.Rio.RouteSets("").Controller().Lister(),
 	}
 
 	rContext.Rio.Stacks("").AddHandler("stack-deploy-controller", s.deploy)
@@ -36,6 +48,9 @@ func Register(ctx context.Context, rContext *types.Context) {
 		return s.enqueue(key)
 	})
 	rContext.Rio.Volumes("").AddHandler("stack-deploy-controller", func(key string, obj *v1beta1.Volume) error {
+		return s.enqueue(key)
+	})
+	rContext.Rio.RouteSets("").AddHandler("stack-deploy-controller", func(key string, obj *v1beta1.RouteSet) error {
 		return s.enqueue(key)
 	})
 
@@ -56,11 +71,13 @@ func Register(ctx context.Context, rContext *types.Context) {
 }
 
 type stackDeployController struct {
+	injector        apply.ConfigInjector
 	stacks          v1beta1.StackInterface
 	stackController v1beta1.StackController
 	serviceLister   v1beta1.ServiceLister
 	configLister    v1beta1.ConfigLister
 	volumeLister    v1beta1.VolumeLister
+	routeSetLister  v1beta1.RouteSetLister
 }
 
 func (s *stackDeployController) enqueue(key string) error {
@@ -91,15 +108,46 @@ func (s *stackDeployController) deploy(key string, _ *v1beta1.Stack) error {
 		return nil
 	}
 
+	ns := key[1:]
 	newStack := stack.DeepCopy()
-	_, err = v1beta1.StackConditionDeployed.Do(newStack, func() (runtime.Object, error) {
-		return newStack, s.deployNamespace(key[1:])
-	})
+
+	stackToDeploy, err := s.getStack(ns)
+	if err != nil {
+		return err
+	}
+
+	if stack.Spec.DisableMesh || settings.IstioEnabled.Get() != "true" {
+		err = s.deployNoMesh(ns, newStack, stackToDeploy)
+	} else {
+		err = s.deployMesh(ns, newStack, stackToDeploy)
+	}
 
 	if !reflect.DeepEqual(stack, newStack) {
 		s.stacks.Update(newStack)
 	}
 
+	return err
+}
+
+func (s *stackDeployController) deployMesh(ns string, stack *v1beta1.Stack, stackToDeploy *deploy.StackResources) error {
+	_, err := v1beta1.StackConditionMeshDeployed.Do(stack, func() (runtime.Object, error) {
+		return stack, deploy.DeployMesh(ns, stackToDeploy)
+	})
+	if err == nil {
+		_, err = v1beta1.StackConditionDeployed.Do(stack, func() (runtime.Object, error) {
+			return stack, deploy.Deploy(ns, stackToDeploy, s.injector)
+		})
+	}
+	return err
+}
+
+func (s *stackDeployController) deployNoMesh(ns string, stack *v1beta1.Stack, stackToDeploy *deploy.StackResources) error {
+	v1beta1.StackConditionMeshDeployed.True(stack)
+	v1beta1.StackConditionMeshDeployed.Reason(stack, "")
+	v1beta1.StackConditionMeshDeployed.Message(stack, "")
+	_, err := v1beta1.StackConditionDeployed.Do(stack, func() (runtime.Object, error) {
+		return stack, deploy.Deploy(ns, stackToDeploy)
+	})
 	return err
 }
 
@@ -119,17 +167,15 @@ func (s *stackDeployController) getStack(namespace string) (*deploy.StackResourc
 		return nil, err
 	}
 
+	routes, err := s.routeSetLister.List(namespace, labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
 	return &deploy.StackResources{
 		Configs:  configs,
 		Volumes:  volumes,
 		Services: services,
+		RouteSet: routes,
 	}, nil
-}
-
-func (s *stackDeployController) deployNamespace(namespace string) error {
-	stack, err := s.getStack(namespace)
-	if err != nil {
-		return err
-	}
-	return deploy.Deploy(namespace, stack)
 }

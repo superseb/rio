@@ -4,6 +4,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/mapper"
 )
 
 var abbrs = []string{"", "k", "m", "g", "t", "p"}
@@ -43,6 +44,6 @@ func (d Bytes) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (Bytes) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d Bytes) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(d.Field, schema)
 }

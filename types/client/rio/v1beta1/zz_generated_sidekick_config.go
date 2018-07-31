@@ -22,6 +22,7 @@ const (
 	SidekickConfigFieldOpenStdin              = "stdinOpen"
 	SidekickConfigFieldPrivileged             = "privileged"
 	SidekickConfigFieldReadonlyRootfs         = "readOnly"
+	SidekickConfigFieldSecrets                = "secrets"
 	SidekickConfigFieldTmpfs                  = "tmpfs"
 	SidekickConfigFieldTty                    = "tty"
 	SidekickConfigFieldUser                   = "user"
@@ -51,6 +52,7 @@ type SidekickConfig struct {
 	OpenStdin              bool            `json:"stdinOpen,omitempty" yaml:"stdinOpen,omitempty"`
 	Privileged             bool            `json:"privileged,omitempty" yaml:"privileged,omitempty"`
 	ReadonlyRootfs         bool            `json:"readOnly,omitempty" yaml:"readOnly,omitempty"`
+	Secrets                []SecretMapping `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 	Tmpfs                  []Tmpfs         `json:"tmpfs,omitempty" yaml:"tmpfs,omitempty"`
 	Tty                    bool            `json:"tty,omitempty" yaml:"tty,omitempty"`
 	User                   string          `json:"user,omitempty" yaml:"user,omitempty"`

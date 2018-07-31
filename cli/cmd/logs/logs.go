@@ -21,7 +21,8 @@ type Logs struct {
 	S_Since     string `desc:"Logs since a certain time, either duration (5s, 2m, 3h) or RFC3339"`
 	P_Previous  bool   `desc:"Print the logs for the previous instance of the container in a pod if it exists"`
 	C_Container string `desc:"Print the logs of a specific container"`
-	N_Tail      int    `desc:"Number of recent lines of logs to print" default:"-1"`
+	N_Tail      int    `desc:"Number of recent lines of logs to print, -1 for all" default:"200"`
+	A_All       bool   `desc:"Include hidden or systems logs when logging"`
 }
 
 func (l *Logs) Run(app *cli.Context) error {
@@ -40,7 +41,7 @@ func (l *Logs) Run(app *cli.Context) error {
 		return err
 	}
 
-	cds, err := ps.ListPods(c, false, l.C_Container, app.Args()...)
+	cds, err := ps.ListPods(c, l.A_All, l.C_Container, app.Args()...)
 	if err != nil {
 		return err
 	}

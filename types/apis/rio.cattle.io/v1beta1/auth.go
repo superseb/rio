@@ -31,7 +31,7 @@ type Permission struct {
 	Name     string   `json:"name,omitempty"`
 }
 
-func (p Permission) String() string {
+func (p Permission) MaybeString() interface{} {
 	if p.Role != "" {
 		return "role=" + p.Role
 	}

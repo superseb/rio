@@ -49,6 +49,7 @@ const (
 	ServiceFieldScale                  = "scale"
 	ServiceFieldScaleStatus            = "scaleStatus"
 	ServiceFieldScheduling             = "scheduling"
+	ServiceFieldSecrets                = "secrets"
 	ServiceFieldSidekicks              = "sidekicks"
 	ServiceFieldSpaceID                = "spaceId"
 	ServiceFieldStackID                = "stackId"
@@ -112,6 +113,7 @@ type Service struct {
 	Scale                  int64                      `json:"scale,omitempty" yaml:"scale,omitempty"`
 	ScaleStatus            *ScaleStatus               `json:"scaleStatus,omitempty" yaml:"scaleStatus,omitempty"`
 	Scheduling             *Scheduling                `json:"scheduling,omitempty" yaml:"scheduling,omitempty"`
+	Secrets                []SecretMapping            `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 	Sidekicks              map[string]SidekickConfig  `json:"sidekicks,omitempty" yaml:"sidekicks,omitempty"`
 	SpaceID                string                     `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
 	StackID                string                     `json:"stackId,omitempty" yaml:"stackId,omitempty"`

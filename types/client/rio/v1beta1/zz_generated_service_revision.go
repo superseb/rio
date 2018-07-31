@@ -43,6 +43,7 @@ const (
 	ServiceRevisionFieldScale                  = "scale"
 	ServiceRevisionFieldScaleStatus            = "scaleStatus"
 	ServiceRevisionFieldScheduling             = "scheduling"
+	ServiceRevisionFieldSecrets                = "secrets"
 	ServiceRevisionFieldSidekicks              = "sidekicks"
 	ServiceRevisionFieldState                  = "state"
 	ServiceRevisionFieldStopGracePeriodSeconds = "stopGracePeriod"
@@ -101,6 +102,7 @@ type ServiceRevision struct {
 	Scale                  int64                     `json:"scale,omitempty" yaml:"scale,omitempty"`
 	ScaleStatus            *ScaleStatus              `json:"scaleStatus,omitempty" yaml:"scaleStatus,omitempty"`
 	Scheduling             *Scheduling               `json:"scheduling,omitempty" yaml:"scheduling,omitempty"`
+	Secrets                []SecretMapping           `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 	Sidekicks              map[string]SidekickConfig `json:"sidekicks,omitempty" yaml:"sidekicks,omitempty"`
 	State                  string                    `json:"state,omitempty" yaml:"state,omitempty"`
 	StopGracePeriodSeconds *int64                    `json:"stopGracePeriod,omitempty" yaml:"stopGracePeriod,omitempty"`

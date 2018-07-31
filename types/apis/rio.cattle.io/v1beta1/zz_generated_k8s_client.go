@@ -19,6 +19,7 @@ type Interface interface {
 	ServicesGetter
 	ConfigsGetter
 	VolumesGetter
+	RouteSetsGetter
 }
 
 type Client struct {
@@ -26,10 +27,11 @@ type Client struct {
 	restClient rest.Interface
 	starters   []controller.Starter
 
-	stackControllers   map[string]StackController
-	serviceControllers map[string]ServiceController
-	configControllers  map[string]ConfigController
-	volumeControllers  map[string]VolumeController
+	stackControllers    map[string]StackController
+	serviceControllers  map[string]ServiceController
+	configControllers   map[string]ConfigController
+	volumeControllers   map[string]VolumeController
+	routeSetControllers map[string]RouteSetController
 }
 
 func NewForConfig(config rest.Config) (Interface, error) {
@@ -46,10 +48,11 @@ func NewForConfig(config rest.Config) (Interface, error) {
 	return &Client{
 		restClient: restClient,
 
-		stackControllers:   map[string]StackController{},
-		serviceControllers: map[string]ServiceController{},
-		configControllers:  map[string]ConfigController{},
-		volumeControllers:  map[string]VolumeController{},
+		stackControllers:    map[string]StackController{},
+		serviceControllers:  map[string]ServiceController{},
+		configControllers:   map[string]ConfigController{},
+		volumeControllers:   map[string]VolumeController{},
+		routeSetControllers: map[string]RouteSetController{},
 	}, nil
 }
 
@@ -111,6 +114,19 @@ type VolumesGetter interface {
 func (c *Client) Volumes(namespace string) VolumeInterface {
 	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &VolumeResource, VolumeGroupVersionKind, volumeFactory{})
 	return &volumeClient{
+		ns:           namespace,
+		client:       c,
+		objectClient: objectClient,
+	}
+}
+
+type RouteSetsGetter interface {
+	RouteSets(namespace string) RouteSetInterface
+}
+
+func (c *Client) RouteSets(namespace string) RouteSetInterface {
+	objectClient := objectclient.NewObjectClient(namespace, c.restClient, &RouteSetResource, RouteSetGroupVersionKind, routeSetFactory{})
+	return &routeSetClient{
 		ns:           namespace,
 		client:       c,
 		objectClient: objectClient,

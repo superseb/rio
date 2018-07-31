@@ -61,7 +61,8 @@ func addService(objects []runtime.Object, revision, serviceName, namespace strin
 	)
 
 	labels := map[string]string{
-		"rio.cattle.io":           "true",
+		"rio.cattle.io": "true",
+		"app":           serviceName,
 		"rio.cattle.io/service":   serviceName,
 		"rio.cattle.io/namespace": namespace,
 		"rio.cattle.io/revision":  revision,

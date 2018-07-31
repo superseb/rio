@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func Deploy(namespace string, stack *StackResources) error {
+func Deploy(namespace string, stack *StackResources, injectors ...apply.ConfigInjector) error {
 	configs, objects, err := configs(nil, stack, namespace)
 	if err != nil {
 		return err
@@ -30,12 +30,12 @@ func Deploy(namespace string, stack *StackResources) error {
 	}
 
 	if len(global) > 0 {
-		if err := apply.Apply(global, "stackdeploy-global-"+namespace, 0); err != nil {
+		if err := apply.Apply(global, "stackdeploy-global-"+namespace, 0, injectors...); err != nil {
 			return err
 		}
 	}
 
-	return apply.Apply(namespaced, "stackdeploy-"+namespace, 0)
+	return apply.Apply(namespaced, "stackdeploy-"+namespace, 0, injectors...)
 }
 
 func splitObjects(objects []runtime.Object) ([]runtime.Object, []runtime.Object, error) {

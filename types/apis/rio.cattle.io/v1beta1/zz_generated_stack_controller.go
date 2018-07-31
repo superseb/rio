@@ -96,7 +96,7 @@ func (l *stackLister) Get(namespace, name string) (*Stack, error) {
 		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    StackGroupVersionKind.Group,
 			Resource: "stack",
-		}, name)
+		}, key)
 	}
 	return obj.(*Stack), nil
 }

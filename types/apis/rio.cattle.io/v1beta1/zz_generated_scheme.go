@@ -41,6 +41,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ConfigList{},
 		&Volume{},
 		&VolumeList{},
+		&RouteSet{},
+		&RouteSetList{},
 	)
 	return nil
 }

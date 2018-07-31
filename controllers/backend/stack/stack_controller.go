@@ -43,6 +43,13 @@ func (s *stackController) Remove(obj *v1beta1.Stack) (*v1beta1.Stack, error) {
 }
 
 func (s *stackController) Updated(stack *v1beta1.Stack) (*v1beta1.Stack, error) {
+	_, err := v1beta1.StackConditionDefined.Do(stack, func() (runtime.Object, error) {
+		return s.define(stack)
+	})
+	return stack, err
+}
+
+func (s *stackController) define(stack *v1beta1.Stack) (*v1beta1.Stack, error) {
 	stack, err := s.createBackingNamespace(stack)
 	if err != nil {
 		return stack, err
@@ -54,7 +61,15 @@ func (s *stackController) Updated(stack *v1beta1.Stack) (*v1beta1.Stack, error) 
 		return stack, nil
 	}
 
-	objects := s.gatherObjects(stack, internalStack)
+	ns := namespace.StackToNamespace(stack)
+
+	if stack.Spec.EnableKubernetesResources {
+		if err := deployK8sResources(stack.Name, ns, internalStack); err != nil {
+			return stack, err
+		}
+	}
+
+	objects := s.gatherObjects(ns, stack, internalStack)
 
 	err = apply.Apply(objects, "stack-"+stack.Name, stack.Generation)
 	return stack, err

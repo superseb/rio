@@ -96,7 +96,7 @@ func (l *serviceLister) Get(namespace, name string) (*Service, error) {
 		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    ServiceGroupVersionKind.Group,
 			Resource: "service",
-		}, name)
+		}, key)
 	}
 	return obj.(*Service), nil
 }

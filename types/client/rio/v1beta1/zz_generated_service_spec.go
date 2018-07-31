@@ -40,6 +40,7 @@ const (
 	ServiceSpecFieldRevisions              = "revisions"
 	ServiceSpecFieldScale                  = "scale"
 	ServiceSpecFieldScheduling             = "scheduling"
+	ServiceSpecFieldSecrets                = "secrets"
 	ServiceSpecFieldServiceLabels          = "serviceLabels"
 	ServiceSpecFieldSidekicks              = "sidekicks"
 	ServiceSpecFieldSpaceID                = "spaceId"
@@ -94,6 +95,7 @@ type ServiceSpec struct {
 	Revisions              map[string]ServiceRevision `json:"revisions,omitempty" yaml:"revisions,omitempty"`
 	Scale                  int64                      `json:"scale,omitempty" yaml:"scale,omitempty"`
 	Scheduling             *Scheduling                `json:"scheduling,omitempty" yaml:"scheduling,omitempty"`
+	Secrets                []SecretMapping            `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 	ServiceLabels          map[string]string          `json:"serviceLabels,omitempty" yaml:"serviceLabels,omitempty"`
 	Sidekicks              map[string]SidekickConfig  `json:"sidekicks,omitempty" yaml:"sidekicks,omitempty"`
 	SpaceID                string                     `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`

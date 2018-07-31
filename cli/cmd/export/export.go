@@ -4,11 +4,18 @@ import (
 	"io"
 	"os"
 
-	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/output"
 	"github.com/rancher/rio/cli/pkg/yamldownload"
 	"github.com/rancher/rio/cli/server"
+	"github.com/rancher/rio/types/client/rio/v1beta1"
 	"github.com/urfave/cli"
+)
+
+var (
+	exportTypes = []string{
+		client.StackType,
+		client.ServiceType,
+	}
 )
 
 type Export struct {
@@ -34,7 +41,7 @@ func (e *Export) Run(app *cli.Context) error {
 	}
 
 	for _, arg := range args {
-		types := util.ExportEditTypes
+		types := exportTypes
 		if e.T_Type != "" {
 			types = []string{e.T_Type}
 		}

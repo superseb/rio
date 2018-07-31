@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/rancher/rio/cli/server"
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli"
 )
 
@@ -14,7 +15,13 @@ type Login struct {
 	Kubeconfig string `desc:"Kubeconfig to use for existing Kubernetes setup"`
 }
 
-func (l *Login) Run(app *cli.Context) error {
+func (l *Login) Run(app *cli.Context) (ex error) {
+	defer func() {
+		if ex == nil {
+			logrus.Infof("Log in successful")
+		}
+	}()
+
 	configHome, rioConf, k8sConf, err := server.Paths()
 	if err != nil {
 		return err

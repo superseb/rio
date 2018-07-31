@@ -5,39 +5,43 @@ import (
 )
 
 const (
-	StackType                      = "stack"
-	StackFieldAdditionalFiles      = "additionalFiles"
-	StackFieldAnswers              = "answers"
-	StackFieldCreated              = "created"
-	StackFieldDescription          = "description"
-	StackFieldLabels               = "labels"
-	StackFieldName                 = "name"
-	StackFieldQuestions            = "questions"
-	StackFieldRemoved              = "removed"
-	StackFieldSpaceID              = "spaceId"
-	StackFieldState                = "state"
-	StackFieldTemplate             = "template"
-	StackFieldTransitioning        = "transitioning"
-	StackFieldTransitioningMessage = "transitioningMessage"
-	StackFieldUUID                 = "uuid"
+	StackType                           = "stack"
+	StackFieldAdditionalFiles           = "additionalFiles"
+	StackFieldAnswers                   = "answers"
+	StackFieldCreated                   = "created"
+	StackFieldDescription               = "description"
+	StackFieldDisableMesh               = "disableMesh"
+	StackFieldEnableKubernetesResources = "enableKubernetesResources"
+	StackFieldLabels                    = "labels"
+	StackFieldName                      = "name"
+	StackFieldQuestions                 = "questions"
+	StackFieldRemoved                   = "removed"
+	StackFieldSpaceID                   = "spaceId"
+	StackFieldState                     = "state"
+	StackFieldTemplate                  = "template"
+	StackFieldTransitioning             = "transitioning"
+	StackFieldTransitioningMessage      = "transitioningMessage"
+	StackFieldUUID                      = "uuid"
 )
 
 type Stack struct {
 	types.Resource
-	AdditionalFiles      map[string]string `json:"additionalFiles,omitempty" yaml:"additionalFiles,omitempty"`
-	Answers              map[string]string `json:"answers,omitempty" yaml:"answers,omitempty"`
-	Created              string            `json:"created,omitempty" yaml:"created,omitempty"`
-	Description          string            `json:"description,omitempty" yaml:"description,omitempty"`
-	Labels               map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Name                 string            `json:"name,omitempty" yaml:"name,omitempty"`
-	Questions            []Question        `json:"questions,omitempty" yaml:"questions,omitempty"`
-	Removed              string            `json:"removed,omitempty" yaml:"removed,omitempty"`
-	SpaceID              string            `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
-	State                string            `json:"state,omitempty" yaml:"state,omitempty"`
-	Template             string            `json:"template,omitempty" yaml:"template,omitempty"`
-	Transitioning        string            `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
-	TransitioningMessage string            `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
-	UUID                 string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
+	AdditionalFiles           map[string]string `json:"additionalFiles,omitempty" yaml:"additionalFiles,omitempty"`
+	Answers                   map[string]string `json:"answers,omitempty" yaml:"answers,omitempty"`
+	Created                   string            `json:"created,omitempty" yaml:"created,omitempty"`
+	Description               string            `json:"description,omitempty" yaml:"description,omitempty"`
+	DisableMesh               bool              `json:"disableMesh,omitempty" yaml:"disableMesh,omitempty"`
+	EnableKubernetesResources bool              `json:"enableKubernetesResources,omitempty" yaml:"enableKubernetesResources,omitempty"`
+	Labels                    map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Name                      string            `json:"name,omitempty" yaml:"name,omitempty"`
+	Questions                 []Question        `json:"questions,omitempty" yaml:"questions,omitempty"`
+	Removed                   string            `json:"removed,omitempty" yaml:"removed,omitempty"`
+	SpaceID                   string            `json:"spaceId,omitempty" yaml:"spaceId,omitempty"`
+	State                     string            `json:"state,omitempty" yaml:"state,omitempty"`
+	Template                  string            `json:"template,omitempty" yaml:"template,omitempty"`
+	Transitioning             string            `json:"transitioning,omitempty" yaml:"transitioning,omitempty"`
+	TransitioningMessage      string            `json:"transitioningMessage,omitempty" yaml:"transitioningMessage,omitempty"`
+	UUID                      string            `json:"uuid,omitempty" yaml:"uuid,omitempty"`
 }
 
 type StackCollection struct {

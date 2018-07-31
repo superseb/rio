@@ -53,9 +53,9 @@ func podSpec(serviceName string, serviceLabels map[string]string, service *v1bet
 	volumes := map[string]v1.Volume{}
 	usedTemplates := map[string]*v1beta1.Volume{}
 
-	podSpec.Containers = append(podSpec.Containers, container(serviceName, service.ContainerConfig, volumes, volumeDefs, usedTemplates))
+	podSpec.Containers = append(podSpec.Containers, container(serviceName, serviceName, service.ContainerConfig, volumes, volumeDefs, usedTemplates))
 	for name, sidekick := range service.Sidekicks {
-		c := container(name, sidekick.ContainerConfig, volumes, volumeDefs, usedTemplates)
+		c := container(serviceName, name, sidekick.ContainerConfig, volumes, volumeDefs, usedTemplates)
 		if sidekick.InitContainer {
 			podSpec.InitContainers = append(podSpec.InitContainers, c)
 		} else {
@@ -139,6 +139,22 @@ func dns(podSpec *v1.PodSpec, service *v1beta1.ServiceUnversionedSpec) {
 	if len(dnsConfig.Nameservers) > 0 {
 		podSpec.DNSPolicy = v1.DNSNone
 	}
+
+	var ns []string
+	for _, name := range dnsConfig.Nameservers {
+		if name == "host" {
+			podSpec.DNSPolicy = v1.DNSDefault
+		} else if name == "cluster" {
+			if service.NetworkMode == "host" {
+				podSpec.DNSPolicy = v1.DNSClusterFirstWithHostNet
+			} else {
+				podSpec.DNSPolicy = v1.DNSClusterFirst
+			}
+		} else {
+			ns = append(ns, name)
+		}
+	}
+	dnsConfig.Nameservers = ns
 
 	for _, dnsOpt := range service.DNSOptions {
 		k, v := kv.Split(dnsOpt, "=")

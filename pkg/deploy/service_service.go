@@ -2,6 +2,7 @@ package deploy
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
@@ -11,29 +12,51 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-func serviceSelector(objects []runtime.Object, name, namespace string, service *v1beta1.ServiceUnversionedSpec, labels map[string]string) []runtime.Object {
-	svc := newServiceSelector(name, namespace, labels)
+func serviceNamedPorts(service *v1beta1.ServiceUnversionedSpec) ([]v1.ServicePort, string) {
+	var result []v1.ServicePort
 
 	eps := service.ExposedPorts
-	for _, container := range service.Sidekicks {
+	for _, k := range sortKeys(service.Sidekicks) {
+		container := service.Sidekicks[k]
 		eps = append(eps, container.ExposedPorts...)
 	}
 
-	if len(eps) > 0 {
-		svc.Spec.ClusterIP = ""
-		svc.Spec.Ports = nil
+	for _, portBindings := range service.PortBindings {
+		eps = append(eps, v1beta1.ExposedPort{
+			PortBinding: v1beta1.PortBinding{
+				TargetPort: portBindings.TargetPort,
+				Port:       portBindings.TargetPort,
+				Protocol:   portBindings.Protocol,
+			},
+		})
 	}
 
+	ip := ""
+	portsDefined := map[string]bool{}
 	names := map[string]bool{}
-	for i, port := range eps {
-		name := port.Name
-		if name == "" {
-			name = fmt.Sprintf("port-%d", i)
+	for _, port := range eps {
+		if port.Port == 0 {
+			port.Port = port.TargetPort
 		}
-		if names[name] {
-			name = fmt.Sprintf("%s-%d", name, i)
+
+		if port.IP != "" {
+			ip = port.IP
 		}
+
+		name := ""
+		defName := fmt.Sprintf("%s-%d-%d", port.Protocol, port.Port, port.TargetPort)
+		if port.Name == "" {
+			name = defName
+		} else {
+			name = port.Name
+		}
+		if names[name] || portsDefined[defName] {
+			continue
+		}
+
+		portsDefined[defName] = true
 		names[name] = true
+
 		servicePort := v1.ServicePort{
 			Name:       name,
 			TargetPort: intstr.FromInt(int(port.TargetPort)),
@@ -41,19 +64,26 @@ func serviceSelector(objects []runtime.Object, name, namespace string, service *
 			Protocol:   v1.ProtocolTCP,
 		}
 
-		if servicePort.Port == 0 {
-			servicePort.Port = servicePort.TargetPort.IntVal
-		}
-
 		if strings.EqualFold(port.Protocol, "udp") {
 			servicePort.Protocol = v1.ProtocolUDP
 		}
 
-		if port.IP != "" {
-			svc.Spec.ClusterIP = port.IP
-		}
+		result = append(result, servicePort)
+	}
 
-		svc.Spec.Ports = append(svc.Spec.Ports, servicePort)
+	return result, ip
+}
+
+func serviceSelector(objects []runtime.Object, name, namespace string, service *v1beta1.ServiceUnversionedSpec, labels map[string]string) []runtime.Object {
+	svc := newServiceSelector(name, namespace, labels)
+	ports, ip := serviceNamedPorts(service)
+
+	if len(ports) > 0 {
+		svc.Spec.Ports = ports
+	}
+
+	if ip != "" {
+		svc.Spec.ClusterIP = ip
 	}
 
 	objects = append(objects, svc)
@@ -61,6 +91,16 @@ func serviceSelector(objects []runtime.Object, name, namespace string, service *
 }
 
 func newServiceSelector(name, namespace string, labels map[string]string) *v1.Service {
+	// for "latest" selector we want all revisions
+	if labels["rio.cattle.io/revision"] == "latest" {
+		newLabels := map[string]string{}
+		for k, v := range labels {
+			newLabels[k] = v
+		}
+		delete(newLabels, "rio.cattle.io/revision")
+		labels = newLabels
+	}
+
 	return &v1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
@@ -72,9 +112,8 @@ func newServiceSelector(name, namespace string, labels map[string]string) *v1.Se
 			Labels:    labels,
 		},
 		Spec: v1.ServiceSpec{
-			Type:      v1.ServiceTypeClusterIP,
-			ClusterIP: v1.ClusterIPNone,
-			Selector:  labels,
+			Type:     v1.ServiceTypeClusterIP,
+			Selector: labels,
 			Ports: []v1.ServicePort{
 				{
 					Name:       "default",
@@ -85,4 +124,13 @@ func newServiceSelector(name, namespace string, labels map[string]string) *v1.Se
 			},
 		},
 	}
+}
+
+func sortKeys(m map[string]v1beta1.SidekickConfig) []string {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }

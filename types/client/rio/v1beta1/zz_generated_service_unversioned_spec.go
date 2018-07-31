@@ -40,6 +40,7 @@ const (
 	ServiceUnversionedSpecFieldRestartPolicy          = "restart"
 	ServiceUnversionedSpecFieldScale                  = "scale"
 	ServiceUnversionedSpecFieldScheduling             = "scheduling"
+	ServiceUnversionedSpecFieldSecrets                = "secrets"
 	ServiceUnversionedSpecFieldSidekicks              = "sidekicks"
 	ServiceUnversionedSpecFieldStopGracePeriodSeconds = "stopGracePeriod"
 	ServiceUnversionedSpecFieldTmpfs                  = "tmpfs"
@@ -91,6 +92,7 @@ type ServiceUnversionedSpec struct {
 	RestartPolicy          string                    `json:"restart,omitempty" yaml:"restart,omitempty"`
 	Scale                  int64                     `json:"scale,omitempty" yaml:"scale,omitempty"`
 	Scheduling             *Scheduling               `json:"scheduling,omitempty" yaml:"scheduling,omitempty"`
+	Secrets                []SecretMapping           `json:"secrets,omitempty" yaml:"secrets,omitempty"`
 	Sidekicks              map[string]SidekickConfig `json:"sidekicks,omitempty" yaml:"sidekicks,omitempty"`
 	StopGracePeriodSeconds *int64                    `json:"stopGracePeriod,omitempty" yaml:"stopGracePeriod,omitempty"`
 	Tmpfs                  []Tmpfs                   `json:"tmpfs,omitempty" yaml:"tmpfs,omitempty"`

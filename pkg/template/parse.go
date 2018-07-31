@@ -13,6 +13,10 @@ import (
 	"github.com/rancher/rio/pkg/yaml"
 )
 
+var builtinVars = []string{
+	"NAMESPACE",
+}
+
 func (t *Template) RequiredEnv() ([]string, error) {
 	names := map[string]bool{}
 	_, err := envsubst.Eval(string(t.Content), func(in string) string {
@@ -21,6 +25,10 @@ func (t *Template) RequiredEnv() ([]string, error) {
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	for _, b := range builtinVars {
+		delete(names, b)
 	}
 
 	for _, q := range t.Questions {
@@ -137,6 +145,9 @@ func (t *Template) parseYAML() (map[string]interface{}, error) {
 
 func (t *Template) parseContent(answers map[string]string) ([]byte, error) {
 	evaled, err := envsubst.Eval(string(t.Content), func(key string) string {
+		if key == "NAMESPACE" {
+			return t.Namespace
+		}
 		return answers[key]
 	})
 	if err != nil {

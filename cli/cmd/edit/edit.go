@@ -12,7 +12,6 @@ import (
 	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/norman/types"
 	"github.com/rancher/rio/cli/cmd/config"
-	"github.com/rancher/rio/cli/cmd/util"
 	"github.com/rancher/rio/cli/pkg/up"
 	"github.com/rancher/rio/cli/pkg/waiter"
 	"github.com/rancher/rio/cli/pkg/yamldownload"
@@ -27,8 +26,19 @@ const (
 	format = "application/yaml"
 )
 
+var (
+	editTypes = []string{
+		client.StackType,
+		client.ServiceType,
+		client.ConfigType,
+		client.RouteSetType,
+	}
+)
+
 type Edit struct {
-	Prompt bool `desc:"When editing a stack re-ask all questions if not found in environment variables"`
+	Prompt bool   `desc:"When editing a stack re-ask all questions if not found in environment variables"`
+	Raw    bool   `desc:"Edit the raw API object, not the pretty formatted one"`
+	T_Type string `desc:"Specific type to edit"`
 }
 
 func (edit *Edit) Run(app *cli.Context) error {
@@ -43,13 +53,17 @@ func (edit *Edit) Run(app *cli.Context) error {
 		return err
 	}
 
+	if edit.Raw {
+		return edit.rawEdit(app, ctx)
+	}
+
 	args := app.Args()
 	if len(args) == 0 {
 		args = []string{ctx.DefaultStackName}
 	}
 
 	for _, arg := range args {
-		obj, body, url, err := yamldownload.DownloadYAML(ctx, format, "edit", arg, util.ExportEditTypes...)
+		obj, body, url, err := yamldownload.DownloadYAML(ctx, format, "edit", arg, editTypes...)
 		if err != nil {
 			return err
 		}
@@ -61,39 +75,59 @@ func (edit *Edit) Run(app *cli.Context) error {
 			return err
 		}
 
-		for {
-			buf := &bytes.Buffer{}
-			buf.Write(prefix)
-			buf.Write(input)
-			rawInput := buf.Bytes()
-
-			e := editor.NewDefaultEditor(os.Environ())
-			content, path, err := e.LaunchTempFile("rio-", "-edit.yaml", buf)
-			if path != "" {
-				defer os.Remove(path)
-			}
-			if err != nil {
+		updated, err := editLoop(prefix, input, func(content []byte) error {
+			if err := edit.update(ctx, format, obj, url, content); err != nil {
 				return err
 			}
+			waiter.Add(obj.ID)
+			return nil
+		})
 
-			if bytes.Compare(content, rawInput) != 0 {
-				content = bytes.TrimPrefix(content, prefix)
-				if err := edit.update(ctx, format, obj, url, content); err != nil {
-					prefix = []byte(fmt.Sprintf("#\n# Error updating content:\n#    %v\n#\n", err.Error()))
-					continue
-				}
-				waiter.Add(obj.ID)
-			} else {
-				logrus.Infof("No change for %s(%s)", arg, obj.ID)
-			}
-
-			prefix = nil
-			break
+		if err != nil {
+			return err
 		}
 
+		if !updated {
+			logrus.Infof("No change for %s(%s)", arg, obj.ID)
+		}
 	}
 
 	return waiter.Wait()
+}
+
+type updateFunc func(content []byte) error
+
+func editLoop(prefix, input []byte, update updateFunc) (bool, error) {
+	for {
+		buf := &bytes.Buffer{}
+		buf.Write(prefix)
+		buf.Write(input)
+		rawInput := buf.Bytes()
+
+		e := editor.NewDefaultEditor(os.Environ())
+		content, path, err := e.LaunchTempFile("rio-", "-edit.yaml", buf)
+		if path != "" {
+			defer os.Remove(path)
+		}
+		if err != nil {
+			return false, err
+		}
+
+		if bytes.Compare(content, rawInput) != 0 {
+			content = bytes.TrimPrefix(content, prefix)
+			input = content
+			if err := update(content); err != nil {
+				prefix = []byte(fmt.Sprintf("#\n# Error updating content:\n#    %v\n#\n", err.Error()))
+				continue
+			}
+		} else {
+			return false, nil
+		}
+
+		break
+	}
+
+	return true, nil
 }
 
 func (edit *Edit) update(ctx *server.Context, format string, obj *types.Resource, self string, content []byte) error {

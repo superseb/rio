@@ -15,6 +15,7 @@ var (
 		client.ServiceType,
 		client.ConfigType,
 		client.StackType,
+		client.RouteSetType,
 		client.VolumeType,
 	}
 	spaceInspectType = []string{

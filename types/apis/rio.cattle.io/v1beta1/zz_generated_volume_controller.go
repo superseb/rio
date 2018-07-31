@@ -96,7 +96,7 @@ func (l *volumeLister) Get(namespace, name string) (*Volume, error) {
 		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    VolumeGroupVersionKind.Group,
 			Resource: "volume",
-		}, name)
+		}, key)
 	}
 	return obj.(*Volume), nil
 }

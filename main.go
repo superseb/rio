@@ -1,4 +1,5 @@
 //go:generate go run types/codegen/cleanup/main.go
+//go:generate go run vendor/github.com/jteeuwen/go-bindata/go-bindata/AppendSliceValue.go vendor/github.com/jteeuwen/go-bindata/go-bindata/main.go vendor/github.com/jteeuwen/go-bindata/go-bindata/version.go -o ./stacks/bindata.go -ignore bindata.go -pkg stacks ./stacks/
 //go:generate go run types/codegen/main.go
 
 package main
@@ -27,5 +28,6 @@ func run() error {
 	if os.Getenv("RIO_DEBUG") == "true" {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	return server.StartServer(context.Background(), "./data-dir", 5080, 5443, true)
+	inCluster := os.Getenv("RIO_IN_CLUSTER") == "true"
+	return server.StartServer(context.Background(), "./data-dir", 5080, 5443, true, inCluster)
 }

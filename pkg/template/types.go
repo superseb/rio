@@ -6,6 +6,7 @@ import (
 )
 
 type Template struct {
+	Namespace       string
 	Meta            pretty.TemplateMeta
 	Content         []byte
 	AdditionalFiles map[string][]byte

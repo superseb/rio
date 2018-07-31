@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/mapper"
 )
 
 type HealthMapper struct {
@@ -40,6 +41,6 @@ func (d HealthMapper) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (HealthMapper) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d HealthMapper) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(d.Field, schema)
 }

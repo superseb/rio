@@ -34,7 +34,7 @@ var (
 	}
 )
 
-func container(name string, container v1beta1.ContainerConfig, volumes map[string]v1.Volume, volumeDefs map[string]*v1beta1.Volume, usedTemplates map[string]*v1beta1.Volume) v1.Container {
+func container(serviceName, name string, container v1beta1.ContainerConfig, volumes map[string]v1.Volume, volumeDefs map[string]*v1beta1.Volume, usedTemplates map[string]*v1beta1.Volume) v1.Container {
 	c := v1.Container{
 		Name:            name,
 		Image:           container.Image,
@@ -50,8 +50,8 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 			},
 			Privileged: &container.Privileged,
 		},
-		TTY:       container.Tty,
-		StdinOnce: container.OpenStdin,
+		TTY:   container.Tty,
+		Stdin: container.OpenStdin,
 		Resources: v1.ResourceRequirements{
 			Limits:   v1.ResourceList{},
 			Requests: v1.ResourceList{},
@@ -80,6 +80,7 @@ func container(name string, container v1beta1.ContainerConfig, volumes map[strin
 	}
 
 	addConfigs(&c, container, volumes)
+	addSecrets(serviceName, &c, container, volumes)
 
 	return c
 }
@@ -114,7 +115,6 @@ func addConfigs(c *v1.Container, container v1beta1.ContainerConfig, volumes map[
 			SubPath:   "content",
 		})
 	}
-
 }
 
 func populateEnv(c *v1.Container, container v1beta1.ContainerConfig) {
@@ -250,12 +250,20 @@ func toProbes(healthcheck *v1beta1.HealthConfig) (*v1.Probe, *v1.Probe) {
 		if err == nil {
 			probe.HTTPGet = &v1.HTTPGetAction{
 				Path: u.Path,
-				Port: intstr.Parse(u.Port()),
 			}
 			if strings.HasPrefix(test, "http://") {
 				probe.HTTPGet.Scheme = v1.URISchemeHTTP
 			} else if strings.HasPrefix(test, "https://") {
 				probe.HTTPGet.Scheme = v1.URISchemeHTTPS
+			}
+
+			port := u.Port()
+			if port == "" && probe.HTTPGet.Scheme == v1.URISchemeHTTPS {
+				probe.HTTPGet.Port = intstr.Parse("443")
+			} else if port == "" {
+				probe.HTTPGet.Port = intstr.Parse("80")
+			} else {
+				probe.HTTPGet.Port = intstr.Parse(u.Port())
 			}
 
 			for i := 1; i < len(healthcheck.Test); i++ {
@@ -291,7 +299,9 @@ func toProbes(healthcheck *v1beta1.HealthConfig) (*v1.Probe, *v1.Probe) {
 		}
 	}
 
-	return &probe, &probe
+	liveness := probe
+	liveness.SuccessThreshold = 1
+	return &liveness, &probe
 }
 
 func toCaps(args []string) []v1.Capability {
@@ -300,4 +310,45 @@ func toCaps(args []string) []v1.Capability {
 		caps = append(caps, v1.Capability(arg))
 	}
 	return caps
+}
+
+func addSecrets(serviceName string, c *v1.Container, container v1beta1.ContainerConfig, volumes map[string]v1.Volume) {
+	t := true
+
+	for _, secret := range container.Secrets {
+		name := "secret-" + secret.Source
+		var mode *int32
+		if secret.Mode != "" {
+			r, err := strconv.ParseInt(secret.Mode, 8, 32)
+			if err == nil {
+				r32 := int32(r)
+				mode = &r32
+			}
+		}
+
+		source := secret.Source
+		if source == "identity" {
+			source = "istio." + serviceName
+		}
+		volumes[name] = v1.Volume{
+			Name: name,
+			VolumeSource: v1.VolumeSource{
+				Secret: &v1.SecretVolumeSource{
+					Optional:    &t,
+					SecretName:  source,
+					DefaultMode: mode,
+				},
+			},
+		}
+
+		target := secret.Target
+		if target == "" {
+			target = "/run/secrets/" + secret.Source
+		}
+
+		c.VolumeMounts = append(c.VolumeMounts, v1.VolumeMount{
+			Name:      name,
+			MountPath: target,
+		})
+	}
 }

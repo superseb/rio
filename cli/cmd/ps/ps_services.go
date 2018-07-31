@@ -108,10 +108,10 @@ func endpoint(ctx *server.Context, stack *client.Stack, ports []client.PortBindi
 	for _, port := range ports {
 		if port.Protocol == "http" {
 			name, rev := kv.Split(service.Name, ":")
-			domain := fmt.Sprintf("%s.%s.%s", name, stack.Name, ctx.Domain)
 			if rev != "" && rev != "latest" {
-				domain = rev + "." + domain
+				name = name + "-" + rev
 			}
+			domain := fmt.Sprintf("%s.%s.%s", name, stack.Name, ctx.Domain)
 
 			return "http://" + domain
 		}

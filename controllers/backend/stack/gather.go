@@ -2,15 +2,12 @@ package stack
 
 import (
 	"github.com/rancher/rancher/pkg/ref"
-	"github.com/rancher/rio/pkg/namespace"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-func (s *stackController) gatherObjects(stack *v1beta1.Stack, internalStack *v1beta1.InternalStack) []runtime.Object {
+func (s *stackController) gatherObjects(ns string, stack *v1beta1.Stack, internalStack *v1beta1.InternalStack) []runtime.Object {
 	var resources []runtime.Object
-
-	ns := namespace.StackToNamespace(stack)
 
 	for name, config := range internalStack.Configs {
 		newResource := config.DeepCopy()

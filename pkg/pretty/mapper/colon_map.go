@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/rancher/norman/types"
+	"github.com/rancher/norman/types/mapper"
 )
 
 type MapToSlice struct {
@@ -21,7 +22,7 @@ func (d MapToSlice) ToInternal(data map[string]interface{}) error {
 	}
 
 	if m, ok := v.(map[string]interface{}); ok {
-		var result []string
+		var result []interface{}
 		for k, v := range m {
 			result = append(result, fmt.Sprintf("%s%s%v", k, d.Sep, v))
 		}
@@ -31,6 +32,6 @@ func (d MapToSlice) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (MapToSlice) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d MapToSlice) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(d.Field, schema)
 }

@@ -2,6 +2,7 @@ package mapper
 
 import (
 	"github.com/rancher/norman/types"
+	"github.com/rancher/norman/types/mapper"
 )
 
 type AliasField struct {
@@ -22,6 +23,6 @@ func (d AliasField) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (AliasField) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d AliasField) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(d.Field, schema)
 }

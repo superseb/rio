@@ -27,6 +27,29 @@ type ConfigSpec struct {
 	StackScoped
 }
 
+type SecretMapping struct {
+	Source string `json:"source,omitempty" norman:"required"`
+	Target string `json:"target,omitempty"`
+	Mode   string `json:"mode,omitempty"`
+}
+
+func (s SecretMapping) MaybeString() interface{} {
+	if s.Target == "/"+s.Source {
+		s.Target = ""
+	}
+
+	msg := s.Source
+	if s.Target != "" {
+		msg += ":" + s.Target
+	}
+
+	if s.Mode != "" {
+		msg = fmt.Sprintf("%s,mode=%s", msg, s.Mode)
+	}
+
+	return msg
+}
+
 type ConfigMapping struct {
 	Source string `json:"source,omitempty" norman:"required"`
 	Target string `json:"target,omitempty"`
@@ -35,7 +58,7 @@ type ConfigMapping struct {
 	Mode   string `json:"mode,omitempty"`
 }
 
-func (c ConfigMapping) String() string {
+func (c ConfigMapping) MaybeString() interface{} {
 	if c.Target == "/"+c.Source {
 		c.Target = ""
 	}

@@ -37,7 +37,12 @@ func WaitFor(ctx *server.Context, resource string) error {
 	return w.Wait()
 }
 
-func waitForResources(ctx *server.Context) error {
+func waitForResources(app *cli.Context) error {
+	ctx, err := server.NewContext(app)
+	if err != nil {
+		return err
+	}
+
 	ctx.CLIContext.GlobalSet("wait", "true")
 
 	w, err := NewWaiter(ctx)
@@ -138,7 +143,7 @@ func (w *Waiter) checkDone(resourceType, id string, data map[string]interface{})
 		return true, nil
 	}
 
-	return (data["state"] == w.state || data["healthState"] == w.state), nil
+	return data["state"] == w.state || data["healthState"] == w.state, nil
 }
 
 func (w *Waiter) Wait() error {

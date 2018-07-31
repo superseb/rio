@@ -6,8 +6,6 @@ import (
 )
 
 type JSONKeys struct {
-	Field string
-	Names []string
 }
 
 func (d JSONKeys) FromInternal(data map[string]interface{}) {
@@ -24,6 +22,6 @@ func (d JSONKeys) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (JSONKeys) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+func (d JSONKeys) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
 	return nil
 }

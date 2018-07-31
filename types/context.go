@@ -6,6 +6,7 @@ import (
 	"github.com/rancher/norman/controller"
 	"github.com/rancher/norman/store/proxy"
 	"github.com/rancher/norman/types"
+	"github.com/rancher/rio/types/apis/networking.istio.io/v1alpha3"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1/schema"
 	spacev1beta1 "github.com/rancher/rio/types/apis/space.cattle.io/v1beta1"
@@ -23,6 +24,7 @@ type Context struct {
 	Apps         v1beta2.Interface
 	Rio          v1beta1.Interface
 	Core         v1.Interface
+	Networking   v1alpha3.Interface
 	K8s          kubernetes.Interface
 	ClientGetter proxy.ClientGetter
 	Embedded     bool
@@ -49,6 +51,11 @@ func NewContext(restConfig rest.Config) (*Context, error) {
 		return nil, err
 	}
 
+	n, err := v1alpha3.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	k, err := kubernetes.NewForConfig(&restConfig)
 	if err != nil {
 		return nil, err
@@ -66,6 +73,7 @@ func NewContext(restConfig rest.Config) (*Context, error) {
 			AddSchemas(schema.Schemas),
 		Apps:         a,
 		Global:       g,
+		Networking:   n,
 		Rio:          r,
 		Core:         c,
 		K8s:          k,
@@ -78,5 +86,6 @@ func (c *Context) Start(ctx context.Context) error {
 		c.Global,
 		c.Apps,
 		c.Rio,
+		c.Networking,
 		c.Core)
 }

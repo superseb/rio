@@ -3,8 +3,8 @@ package backend
 import (
 	"context"
 
-	"github.com/rancher/rio/controllers/backend/data"
-	"github.com/rancher/rio/controllers/backend/node"
+	"github.com/rancher/rio/controllers/backend/gateway"
+	"github.com/rancher/rio/controllers/backend/pod"
 	"github.com/rancher/rio/controllers/backend/service"
 	"github.com/rancher/rio/controllers/backend/stack"
 	"github.com/rancher/rio/controllers/backend/stackdeploy"
@@ -13,14 +13,11 @@ import (
 )
 
 func Register(ctx context.Context, rContext *types.Context) error {
-	if err := data.AddData(rContext); err != nil {
-		return err
-	}
-
+	gateway.Register(ctx, rContext)
 	stack.Register(ctx, rContext)
 	stackdeploy.Register(ctx, rContext)
 	service.Register(ctx, rContext)
-	node.Register(ctx, rContext)
+	pod.Register(ctx, rContext)
 	volume.Register(ctx, rContext)
 	return nil
 }

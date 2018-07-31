@@ -34,6 +34,9 @@ func (w *Weight) Run(app *cli.Context) error {
 		name, scaleStr := kv.Split(arg, "=")
 		scaleStr = strings.TrimSuffix(scaleStr, "%")
 
+		if scaleStr == "" {
+			return fmt.Errorf("weight params must be in the format of SERVICE=PERCENTAGE, for example: mystack/myservice=10%")
+		}
 		scale, err := strconv.Atoi(scaleStr)
 		if err != nil {
 			return fmt.Errorf("failed to parse %s: %v", arg, err)

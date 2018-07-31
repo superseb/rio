@@ -14,14 +14,14 @@ var (
 	baseK8s     = "apis"
 )
 
-func Generate(schemas *types.Schemas) {
+func Generate(schemas *types.Schemas, backendTypes map[string]bool) {
 	version := getVersion(schemas)
 	group := strings.Split(version.Group, ".")[0]
 
 	cattleOutputPackage := path.Join(basePackage, baseCattle, group, version.Version)
 	k8sOutputPackage := path.Join(basePackage, baseK8s, version.Group, version.Version)
 
-	if err := generator.Generate(schemas, nil, cattleOutputPackage, k8sOutputPackage); err != nil {
+	if err := generator.Generate(schemas, backendTypes, cattleOutputPackage, k8sOutputPackage); err != nil {
 		panic(err)
 	}
 }

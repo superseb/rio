@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/onsi/ginkgo/reporters/stenographer/support/go-isatty"
 	"github.com/pkg/errors"
 	"github.com/rancher/norman/parse/builder"
 	"github.com/rancher/norman/types"
@@ -92,9 +93,33 @@ func PromptBool(text string, def bool) (bool, error) {
 	}
 }
 
+func PrintToTerm(text ...interface{}) {
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		fmt.Print(text...)
+	} else {
+		fmt.Fprint(os.Stderr, text...)
+	}
+}
+
+func PrintlnToTerm(text ...interface{}) {
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		fmt.Println(text...)
+	} else {
+		fmt.Fprintln(os.Stderr, text...)
+	}
+}
+
+func PrintfToTerm(msg string, format ...interface{}) {
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		fmt.Printf(msg, format...)
+	} else {
+		fmt.Fprintf(os.Stderr, msg, format...)
+	}
+}
+
 func Prompt(text, def string) (string, error) {
 	for {
-		fmt.Print(text)
+		PrintToTerm(text)
 		answer, err := bufio.NewReader(os.Stdin).ReadString('\n')
 		if err != nil {
 			return "", err

@@ -6,6 +6,7 @@ import (
 
 	"github.com/rancher/norman/types/convert"
 	"github.com/rancher/norman/types/convert/schemaconvert"
+	"github.com/rancher/rio/pkg/namespace"
 	"github.com/rancher/rio/pkg/pretty"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1"
 	"github.com/rancher/rio/types/apis/rio.cattle.io/v1beta1/schema"
@@ -25,6 +26,7 @@ func FromClientStack(stack *client.Stack) (*Template, error) {
 
 func FromStack(stack *v1beta1.Stack) (*Template, error) {
 	result := &Template{
+		Namespace:       namespace.StackToNamespace(stack),
 		Content:         []byte(stack.Spec.Template),
 		Answers:         map[string]string{},
 		AdditionalFiles: map[string][]byte{},

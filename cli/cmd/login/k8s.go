@@ -55,7 +55,6 @@ func (l *Login) k8s(tempFile string) (bool, error) {
 			if err == nil {
 				return
 			}
-			fmt.Println(err)
 			if i == 1 {
 				logrus.Infof("Waiting for to connect to Rio")
 			}

@@ -3,6 +3,7 @@ package mapper
 import (
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/mapper"
 )
 
 type ConfigContent struct {
@@ -31,6 +32,6 @@ func (d ConfigContent) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (ConfigContent) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d ConfigContent) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField("content", schema)
 }

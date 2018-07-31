@@ -8,9 +8,9 @@ import (
 	"github.com/docker/docker/pkg/reexec"
 	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/rio/cli/cmd/agent"
+	"github.com/rancher/rio/cli/cmd/attach"
 	"github.com/rancher/rio/cli/cmd/config"
 	"github.com/rancher/rio/cli/cmd/create"
-	"github.com/rancher/rio/cli/cmd/ctr"
 	"github.com/rancher/rio/cli/cmd/edit"
 	"github.com/rancher/rio/cli/cmd/exec"
 	"github.com/rancher/rio/cli/cmd/export"
@@ -22,6 +22,7 @@ import (
 	"github.com/rancher/rio/cli/cmd/promote"
 	"github.com/rancher/rio/cli/cmd/ps"
 	"github.com/rancher/rio/cli/cmd/rm"
+	"github.com/rancher/rio/cli/cmd/route"
 	"github.com/rancher/rio/cli/cmd/run"
 	"github.com/rancher/rio/cli/cmd/scale"
 	"github.com/rancher/rio/cli/cmd/server"
@@ -134,18 +135,18 @@ func main() {
 			"Scale a service",
 			appName+" scale [SERVICE=NUMBER...]",
 			""),
-
 		builder.Command(&rm.Rm{},
 			"Delete a service or stack",
 			appName+" rm ID_OR_NAME",
 			""),
-		builder.Command(&edit.Edit{},
-			"Edit a service or stack",
-			appName+" edit ID_OR_NAME",
-			""),
 		builder.Command(&inspect.Inspect{},
 			"Print the raw API output of a resource",
 			appName+" inspect [ID_OR_NAME...]",
+			""),
+
+		builder.Command(&edit.Edit{},
+			"Edit a service or stack",
+			appName+" edit ID_OR_NAME",
 			""),
 		builder.Command(&up.Up{},
 			"Bring up a stack",
@@ -161,6 +162,10 @@ func main() {
 		builder.Command(&exec.Exec{},
 			"Run a command in a running container",
 			appName+" exec [OPTIONS] CONTAINER COMMAND [ARG...]",
+			""),
+		builder.Command(&attach.Attach{},
+			"Attach to a running process in a container",
+			appName+" attach [OPTIONS] CONTAINER",
 			""),
 		builder.Command(&logs.Logs{},
 			"Print logs from containers",
@@ -178,7 +183,7 @@ func main() {
 
 		builder.Command(&stage.Stage{},
 			"Stage a new revision of a service",
-			appName+" stage [OPTIONS] [SERVICE_ID_NAME]",
+			appName+" stage [OPTIONS] SERVICE_ID_NAME",
 			""),
 		builder.Command(&promote.Promote{},
 			"Promote a staged version to latest",
@@ -188,6 +193,7 @@ func main() {
 			"Weight a percentage of traffic to a staged service",
 			appName+" weight [OPTIONS] [SERVICE_REVISION=PERCENTAGE...]",
 			""),
+		route.Route(app),
 
 		waiter.WaitCommand(),
 
@@ -197,7 +203,7 @@ func main() {
 			""),
 
 		kubectl.NewKubectlCommand(),
-		ctr.NewCtrCommand(),
+		//ctr.NewCtrCommand(),
 	}
 	app.Before = func(ctx *cli.Context) error {
 		if ctx.GlobalBool("debug") {

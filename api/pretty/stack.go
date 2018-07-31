@@ -12,13 +12,12 @@ import (
 
 func buildStack(request *types.APIContext, resource *types.RawResource, data map[string]interface{}) {
 	prettyStack := pretty.Schemas.Schema(&pretty.Version, client.StackType)
-	for _, f := range prettyStack.ResourceFields {
+	for name, f := range prettyStack.ResourceFields {
 		if !definition.IsMapType(f.Type) {
 			continue
 		}
 		targetType := definition.SubType(f.Type)
-		targetSchema := pretty.Schemas.Schema(&prettyStack.Version, targetType)
-		addStackResources(request, targetType, targetSchema.PluralName, resource.ID, data)
+		addStackResources(request, targetType, name, resource.ID, data)
 	}
 }
 

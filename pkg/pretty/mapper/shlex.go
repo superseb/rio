@@ -4,6 +4,7 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/mapper"
 )
 
 type Shlex struct {
@@ -39,6 +40,6 @@ func (d Shlex) ToInternal(data map[string]interface{}) error {
 	return nil
 }
 
-func (Shlex) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (d Shlex) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(d.Field, schema)
 }

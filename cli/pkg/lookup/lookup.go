@@ -43,13 +43,13 @@ func Lookup(c clientbase.APIBaseClientInterface, name string, typeNames ...strin
 	}
 
 	for {
-		fmt.Printf("Choose resource for %s:\n", name)
+		questions.PrintfToTerm("Choose resource for %s:\n", name)
 		for i, r := range result {
 			msg := fmt.Sprintf("[%d] type=%s %s(%s)", i+1, r.Type, r.Name, r.ID)
 			if len(r.Description) > 0 {
 				msg += ": " + r.Description
 			}
-			fmt.Println(msg)
+			questions.PrintlnToTerm(msg)
 		}
 
 		ans, err := questions.Prompt("Select Number [] ", "")
@@ -58,13 +58,13 @@ func Lookup(c clientbase.APIBaseClientInterface, name string, typeNames ...strin
 		}
 		num, err := strconv.Atoi(ans)
 		if err != nil {
-			fmt.Printf("invalid number: %s\n", ans)
+			questions.PrintfToTerm("invalid number: %s\n", ans)
 			continue
 		}
 
 		num--
 		if num < 0 || num >= len(result) {
-			fmt.Println("Select a number between 1 and", +len(result))
+			questions.PrintlnToTerm("Select a number between 1 and", +len(result))
 			continue
 		}
 
@@ -90,6 +90,34 @@ func byID(c clientbase.APIBaseClientInterface, id, schemaType string) (*namedRes
 	return &resource, err
 }
 
+func parseStackServiceName(name string) (string, string) {
+	var (
+		stackName   string
+		serviceName string
+	)
+
+	// logic for routes
+	if strings.Contains(name, ".") {
+		parts := strings.SplitN(name, "://", 2)
+		if len(parts) > 1 {
+			parts[0] = parts[1]
+		}
+		parts = strings.Split(parts[0], ".")
+		if len(parts) == 1 {
+			stackName = "default"
+			serviceName = parts[0]
+		} else {
+			stackName = parts[1]
+			serviceName = parts[0]
+		}
+	} else {
+		parsedService := ParseServiceName(name)
+		stackName, serviceName = parsedService.StackName, parsedService.ServiceName
+	}
+
+	return stackName, serviceName
+}
+
 func setupFilters(c clientbase.APIBaseClientInterface, name, schemaType string) (map[string]interface{}, error) {
 	filters := map[string]interface{}{
 		"name":         name,
@@ -100,8 +128,7 @@ func setupFilters(c clientbase.APIBaseClientInterface, name, schemaType string) 
 		return filters, nil
 	}
 
-	parsedService := ParseServiceName(name)
-	stackName, serviceName := parsedService.StackName, parsedService.ServiceName
+	stackName, serviceName := parseStackServiceName(name)
 
 	stack, err := byName(c, stackName, client.StackType)
 	if err != nil {

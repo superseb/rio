@@ -19,11 +19,12 @@ import (
 	"github.com/rancher/rancher/pkg/dynamiclistener"
 	"github.com/rancher/rancher/pkg/settings"
 	"github.com/rancher/rancher/pkg/tls"
+	"github.com/rancher/rio/api/setup"
 	"github.com/rancher/rio/cli/pkg/resolvehome"
 	"github.com/rancher/rio/controllers/backend"
+	"github.com/rancher/rio/pkg/data"
 	"github.com/rancher/rio/types"
 	"github.com/rancher/rio/types/apis/space.cattle.io/v1beta1"
-	"github.com/rancher/rio/types/config"
 	"github.com/rancher/types/apis/management.cattle.io/v3"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +54,7 @@ func k3sConfig(dataDir string) (*server.ServerConfig, http.Handler, error) {
 	}, newTunnel(), nil
 }
 
-func StartServer(ctx context.Context, dataDir string, httpPort, httpsPort int, controllers bool) error {
+func StartServer(ctx context.Context, dataDir string, httpPort, httpsPort int, controllers, inCluster bool) error {
 	ctx = signal.SigTermCancelContext(ctx)
 
 	sc, tunnel, err := k3sConfig(dataDir)
@@ -73,7 +74,7 @@ func StartServer(ctx context.Context, dataDir string, httpPort, httpsPort int, c
 	}
 	rContext.Embedded = embedded
 
-	if err := config.SetupTypes(ctx, rContext); err != nil {
+	if err := setup.SetupTypes(ctx, rContext); err != nil {
 		return err
 	}
 
@@ -91,6 +92,10 @@ func StartServer(ctx context.Context, dataDir string, httpPort, httpsPort int, c
 
 	if controllers {
 		go leader.RunOrDie(ctx, "rio-controllers", rContext.K8s, func(ctx context.Context) {
+			if err := data.AddData(rContext, inCluster); err != nil {
+				panic(err)
+			}
+
 			if err := backend.Register(ctx, rContext); err != nil {
 				panic(err)
 			}

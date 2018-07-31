@@ -16,7 +16,7 @@ type Mount struct {
 	VolumeOptions *VolumeOptions `json:"volume,omitempty"`
 }
 
-func (m Mount) String() string {
+func (m Mount) MaybeString() interface{} {
 	result := ""
 	if m.Source != "" {
 		result = m.Source + ":"
@@ -110,7 +110,7 @@ type Tmpfs struct {
 	Path      string `json:"path,omitempty" norman:"required"`
 }
 
-func (t Tmpfs) String() string {
+func (t Tmpfs) MaybeString() interface{} {
 	opts := ""
 
 	if t.SizeBytes == 0 {

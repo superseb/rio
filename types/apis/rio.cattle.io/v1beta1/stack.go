@@ -10,7 +10,9 @@ import (
 var (
 	StackConditionNamespaceCreated = condition.Cond("NamespaceCreated")
 	StackConditionParsed           = condition.Cond("Parsed")
+	StackConditionDefined          = condition.Cond("Defined")
 	StackConditionDeployed         = condition.Cond("Deployed")
+	StackConditionMeshDeployed     = condition.Cond("MeshDeployed")
 )
 
 type Stack struct {
@@ -24,15 +26,17 @@ type Stack struct {
 }
 
 type StackSpec struct {
-	Description     string            `json:"description"`
-	Template        string            `json:"template"`
-	AdditionalFiles map[string]string `json:"additionalFiles"`
-	Answers         map[string]string `json:"answers"`
-	Questions       []v3.Question     `json:"questions"`
+	Description               string            `json:"description,omitempty"`
+	Template                  string            `json:"template,omitempty"`
+	AdditionalFiles           map[string]string `json:"additionalFiles,omitempty"`
+	Answers                   map[string]string `json:"answers,omitempty"`
+	Questions                 []v3.Question     `json:"questions,omitempty"`
+	DisableMesh               bool              `json:"disableMesh,omitempty"`
+	EnableKubernetesResources bool              `json:"enableKubernetesResources,omitempty"`
 }
 
 type StackStatus struct {
-	Conditions []Condition `json:"conditions"`
+	Conditions []Condition `json:"conditions,omitempty"`
 }
 
 type StackScoped struct {
@@ -41,7 +45,9 @@ type StackScoped struct {
 }
 
 type InternalStack struct {
-	Services map[string]Service `json:"services,omitempty"`
-	Configs  map[string]Config  `json:"configs,omitempty"`
-	Volumes  map[string]Volume  `json:"volumes,omitempty"`
+	Services   map[string]Service  `json:"services,omitempty"`
+	Configs    map[string]Config   `json:"configs,omitempty"`
+	Volumes    map[string]Volume   `json:"volumes,omitempty"`
+	Routes     map[string]RouteSet `json:"routes,omitempty"`
+	Kubernetes Kubernetes          `json:"kubernetes,omitempty"`
 }

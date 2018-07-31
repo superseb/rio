@@ -1,20 +1,23 @@
 package mapper
 
 import (
-	"fmt"
-
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/convert"
+	"github.com/rancher/norman/types/mapper"
 	"github.com/sirupsen/logrus"
 )
 
-type NewObject func() fmt.Stringer
-type ToObjects func([]string) ([]interface{}, error)
+type MaybeStringer interface {
+	MaybeString() interface{}
+}
+
+type NewObject func() MaybeStringer
+type ToObject func(interface{}) (interface{}, error)
 
 type ObjectsToSlice struct {
 	Field     string
 	NewObject NewObject
-	ToObjects ToObjects
+	ToObject  ToObject
 }
 
 func (p ObjectsToSlice) FromInternal(data map[string]interface{}) {
@@ -27,7 +30,7 @@ func (p ObjectsToSlice) FromInternal(data map[string]interface{}) {
 		return
 	}
 
-	var result []string
+	var result []interface{}
 	for _, obj := range convert.ToMapSlice(objs) {
 		target := p.NewObject()
 		if err := convert.ToObj(obj, target); err != nil {
@@ -35,7 +38,7 @@ func (p ObjectsToSlice) FromInternal(data map[string]interface{}) {
 			continue
 		}
 
-		result = append(result, target.String())
+		result = append(result, target.MaybeString())
 	}
 
 	if len(result) == 0 {
@@ -50,34 +53,39 @@ func (p ObjectsToSlice) ToInternal(data map[string]interface{}) error {
 		return nil
 	}
 
-	tmpfs, ok := data[p.Field]
+	d, ok := data[p.Field]
 	if !ok {
 		return nil
 	}
 
-	strSlice := convert.ToStringSlice(tmpfs)
-	if len(strSlice) == 0 {
+	slc, ok := d.([]interface{})
+	if !ok {
 		return nil
 	}
 
-	tmpfsObjects, err := p.ToObjects(strSlice)
-	if err != nil {
-		return err
-	}
+	var newSlc []interface{}
 
-	var result []interface{}
-	for _, tmpfsObject := range tmpfsObjects {
-		obj, err := convert.EncodeToMap(tmpfsObject)
+	for _, obj := range slc {
+		n, err := convert.ToNumber(obj)
+		if err == nil && n > 0 {
+			obj = convert.ToString(n)
+		}
+		newObj, err := p.ToObject(obj)
 		if err != nil {
 			return err
 		}
-		result = append(result, obj)
+
+		if _, isMap := newObj.(map[string]interface{}); !isMap {
+			newObj, err = convert.EncodeToMap(newObj)
+		}
+
+		newSlc = append(newSlc, newObj)
 	}
 
-	data[p.Field] = result
+	data[p.Field] = newSlc
 	return nil
 }
 
-func (ObjectsToSlice) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
-	return nil
+func (p ObjectsToSlice) ModifySchema(schema *types.Schema, schemas *types.Schemas) error {
+	return mapper.ValidateField(p.Field, schema)
 }

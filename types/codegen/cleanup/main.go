@@ -14,7 +14,9 @@ func main() {
 }
 
 func run() error {
-	return filepath.Walk("../../..", func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk("./types", func(path string, info os.FileInfo, err error) error {
+		fmt.Println(path)
+
 		if err != nil {
 			return err
 		}

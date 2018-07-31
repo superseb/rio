@@ -31,7 +31,7 @@ func ParseMounts(spec []string) ([]client.Mount, error) {
 }
 
 func parseAdditionalOptions(mount client.Mount, spec string) (client.Mount, error) {
-	if mount.Source == "" {
+	if mount.Target == "" {
 		return mount, fmt.Errorf("invalid volume spec, no target path found: %s", spec)
 	}
 

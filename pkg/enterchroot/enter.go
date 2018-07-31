@@ -87,8 +87,9 @@ func Mount(dataDir string) error {
 		Path: reexec.Self(),
 		Args: append([]string{"enter-root"}, os.Args[1:]...),
 		SysProcAttr: &syscall.SysProcAttr{
-			Cloneflags:   syscall.CLONE_NEWPID | syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC,
+			//Cloneflags:   syscall.CLONE_NEWPID | syscall.CLONE_NEWUTS | syscall.CLONE_NEWIPC,
 			Unshareflags: syscall.CLONE_NEWNS,
+			Pdeathsig:    syscall.SYS_KILL,
 		},
 		Stdout: os.Stdout,
 		Stdin:  os.Stdin,

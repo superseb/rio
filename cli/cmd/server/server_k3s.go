@@ -26,5 +26,5 @@ func setupLogging(app *cli.Context) {
 func (s *Server) Run(app *cli.Context) error {
 	setupLogging(app)
 	logrus.Info("Starting Rio ", app.App.Version)
-	return server.StartServer(context.Background(), s.D_DataDir, s.L_HttpListenPort, s.P_HttpsListenPort, !s.DisableControllers)
+	return server.StartServer(context.Background(), s.D_DataDir, s.L_HttpListenPort, s.P_HttpsListenPort, !s.DisableControllers, false)
 }

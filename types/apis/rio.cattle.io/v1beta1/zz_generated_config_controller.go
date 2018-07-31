@@ -96,7 +96,7 @@ func (l *configLister) Get(namespace, name string) (*Config, error) {
 		return nil, errors.NewNotFound(schema.GroupResource{
 			Group:    ConfigGroupVersionKind.Group,
 			Resource: "config",
-		}, name)
+		}, key)
 	}
 	return obj.(*Config), nil
 }

@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/gorilla/websocket"
 	"github.com/rancher/norman/clientbase"
 	"github.com/rancher/rio/types/client/rio/v1beta1"
 	spaceclient "github.com/rancher/rio/types/client/space/v1beta1"
@@ -20,6 +21,7 @@ type ContextBuilder struct {
 	prefix     string
 	serverURL  url.URL
 	httpClient *http.Client
+	wsDialer   *websocket.Dialer
 }
 
 func (c *ContextBuilder) Domain() (string, error) {
@@ -42,6 +44,7 @@ func (c *ContextBuilder) Client(space string) (*client.Client, error) {
 	return client.NewClient(&clientbase.ClientOpts{
 		URL:        c.url("/v1beta1-rio/spaces/" + space + "/schemas"),
 		HTTPClient: c.httpClient,
+		WSDialer:   c.wsDialer,
 	})
 }
 
@@ -49,6 +52,7 @@ func (c *ContextBuilder) SpaceClient() (*spaceclient.Client, error) {
 	return spaceclient.NewClient(&clientbase.ClientOpts{
 		URL:        c.url("/v1beta1-rio/schemas"),
 		HTTPClient: c.httpClient,
+		WSDialer:   c.wsDialer,
 	})
 }
 
@@ -81,6 +85,21 @@ func NewContextBuilder(config string, k8s bool) (*ContextBuilder, error) {
 		return nil, err
 	}
 
+	tls, err := rest.TLSConfigFor(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	prepare, err := createPrepareFunc(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	wsDialer := &websocket.Dialer{
+		TLSClientConfig: tls,
+		Proxy:           prepare,
+	}
+
 	if len(prefix) > 1 { // ignore prefix=/
 		rt = newCallback(rt, func(req *http.Request) {
 			req.Header.Set("X-API-URL-Prefix", prefix)
@@ -98,6 +117,26 @@ func NewContextBuilder(config string, k8s bool) (*ContextBuilder, error) {
 		httpClient: &http.Client{
 			Transport: rt,
 		},
+		wsDialer:  wsDialer,
 		serverURL: *url,
 	}, nil
+}
+
+func createPrepareFunc(cfg *rest.Config) (func(req *http.Request) (*url.URL, error), error) {
+	rt, err := rest.HTTPWrappersForConfig(cfg, &fakeRT{})
+	if err != nil {
+		return nil, err
+	}
+
+	return func(req *http.Request) (*url.URL, error) {
+		_, err := rt.RoundTrip(req)
+		return nil, err
+	}, nil
+}
+
+type fakeRT struct {
+}
+
+func (*fakeRT) RoundTrip(r *http.Request) (*http.Response, error) {
+	return nil, nil
 }

@@ -1,6 +1,8 @@
 package pretty
 
 import (
+	"time"
+
 	"github.com/rancher/norman/types"
 	"github.com/rancher/norman/types/mapper"
 	pm "github.com/rancher/rio/pkg/pretty/mapper"
@@ -14,6 +16,7 @@ func containerMappers() []types.Mapper {
 		pm.Shlex{Field: "command"},
 		pm.NewConfigMapping("configs"),
 		pm.MapToSlice{Field: "configs", Sep: ":"},
+		pm.SingleSlice{Field: "configs"},
 		pm.NewDeviceMapping("devices"),
 		pm.MapToSlice{Field: "devices", Sep: ":"},
 		pm.AliasField{Field: "environment", Names: []string{"env"}},
@@ -34,6 +37,9 @@ func containerMappers() []types.Mapper {
 		pm.AliasField{Field: "memory", Names: []string{"mem", "memoryReservationBytes"}},
 		mapper.Move{From: "nanoCpus", To: "cpus"},
 		pm.AliasField{Field: "cpus", Names: []string{"nanoCpus"}},
+		pm.NewSecretMapping("secrets"),
+		pm.MapToSlice{Field: "secrets", Sep: ":"},
+		pm.SingleSlice{Field: "secrets"},
 		pm.AliasField{Field: "stdinOpen", Names: []string{"interactive"}},
 		pm.NewTmpfs("tmpfs"),
 		pm.SingleSlice{Field: "tmpfs"},
@@ -47,7 +53,7 @@ func serviceMappers() []types.Mapper {
 	return append(containerMappers(),
 		// Sorted by field name (mostly)
 		pm.SingleSlice{Field: "dns"},
-		pm.SingleSlice{Field: "dnsOption"},
+		pm.SingleSlice{Field: "dnsOptions"},
 		pm.SingleSlice{Field: "dnsSearch"},
 		pm.MapToSlice{Field: "extraHosts", Sep: ":"},
 		pm.AliasField{Field: "globalPermissions", Names: []string{"globalPerms"}},
@@ -64,11 +70,12 @@ func serviceMappers() []types.Mapper {
 			"never":      {"no"},
 			"on-failure": {"OnFailure"}},
 		},
+		pm.DefaultMissing{Field: "scale", Default: 1},
 		mapper.Move{From: "scheduling/node/nodeId", To: "node"},
 		pm.SchedulingMapper{Field: "scheduling"},
 		mapper.Drop{Field: "spaceId", IgnoreDefinition: true},
 		mapper.Drop{Field: "stackId", IgnoreDefinition: true},
-		pm.Duration{Field: "stopGracePeriod"},
+		pm.Duration{Field: "stopGracePeriod", Unit: time.Second},
 	)
 }
 

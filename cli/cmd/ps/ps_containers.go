@@ -13,9 +13,10 @@ import (
 )
 
 var (
-	ignoreImages = []string{
-		"gcr.io/runconduit/proxy:",
-		"gcr.io/runconduit/proxy-init:",
+	ignoreNames = map[string]bool{
+		"istio-proxy":      true,
+		"istio-init":       true,
+		"enable-core-dump": true,
 	}
 )
 
@@ -47,7 +48,7 @@ func ListPods(c *spaceclient.Client, all bool, specificContainerName string, cri
 		containers := append(pod.Containers, pod.InitContainers...)
 		for j, container := range containers {
 			serviceName := pod.Labels["rio.cattle.io/service"]
-			if !all && (serviceName == "" || ignoreImage(container.Image)) {
+			if !all && (serviceName == "" || ignoreNames[container.Name]) {
 				continue
 			}
 
@@ -157,13 +158,4 @@ func containerName(obj, obj2 interface{}) (string, error) {
 		ContainerName: container.Name,
 		PodName:       pod.Name,
 	}.String(), nil
-}
-
-func ignoreImage(image string) bool {
-	for _, bad := range ignoreImages {
-		if strings.Contains(image, bad) {
-			return true
-		}
-	}
-	return false
 }

@@ -33,7 +33,7 @@ type ServiceRevision struct {
 type ServiceUnversionedSpec struct {
 	Labels             map[string]string `json:"labels,omitempty"`
 	Metadata           map[string]string `json:"metadata,omitempty"` //alias annotations
-	Scale              int               `json:"scale,omitempty"`
+	Scale              int               `json:"scale"`
 	BatchSize          int               `json:"batchSize,omitempty"`
 	UpdateOrder        string            `json:"updateOrder,omitempty" norman:"type=enum,options=start-first|stop-first"`
 	UpdateStrategy     string            `json:"updateStrategy,omitempty" norman:"type=enum,options=rolling|on-delete,default=rolling"`
@@ -66,17 +66,18 @@ type ScaleStatus struct {
 }
 
 type PodConfig struct {
-	Hostname               string       `json:"hostname,omitempty"`
-	Global                 bool         `json:"global,omitempty"`
-	Scheduling             Scheduling   `json:"scheduling,omitempty"`
-	StopGracePeriodSeconds *int         `json:"stopGracePeriod,omitempty"`                                                           // support friendly numbers
-	RestartPolicy          string       `json:"restart,omitempty" norman:"type=enum,options=never|on-failure|always,default=always"` //support no and OnFailure
-	DNS                    []string     `json:"dns,omitempty"`                                                                       // support string
-	DNSOptions             []string     `json:"dnsOptions,omitempty"`                                                                // support string
-	DNSSearch              []string     `json:"dnsSearch,omitempty"`                                                                 // support string
-	ExtraHosts             []string     `json:"extraHosts,omitempty"`                                                                // support map
-	GlobalPermissions      []Permission `json:"globalPermissions,omitempty"`
-	Permissions            []Permission `json:"permissions,omitempty"`
+	Hostname               string        `json:"hostname,omitempty"`
+	Global                 bool          `json:"global,omitempty"`
+	Scheduling             Scheduling    `json:"scheduling,omitempty"`
+	StopGracePeriodSeconds *int          `json:"stopGracePeriod,omitempty"`                                                           // support friendly numbers
+	RestartPolicy          string        `json:"restart,omitempty" norman:"type=enum,options=never|on-failure|always,default=always"` //support no and OnFailure
+	DNS                    []string      `json:"dns,omitempty"`                                                                       // support string
+	DNSOptions             []string      `json:"dnsOptions,omitempty"`                                                                // support string
+	DNSSearch              []string      `json:"dnsSearch,omitempty"`                                                                 // support string
+	ExtraHosts             []string      `json:"extraHosts,omitempty"`                                                                // support map
+	GlobalPermissions      []Permission  `json:"globalPermissions,omitempty"`
+	Permissions            []Permission  `json:"permissions,omitempty"`
+	PortBindings           []PortBinding `json:"ports,omitempty"` // support []string
 }
 
 type Scheduling struct {
@@ -106,10 +107,9 @@ type NodeScheduling struct {
 }
 
 type PrivilegedConfig struct {
-	NetworkMode  string        `json:"net,omitempty" norman:"type=enum,options=default|host,default=default"` // alias network, support bridge
-	PortBindings []PortBinding `json:"ports,omitempty"`                                                       // support []string
-	IpcMode      string        `json:"ipc,omitempty" norman:"type=enum,options=default|host,default=default"`
-	PidMode      string        `json:"pid,omitempty" norman:"type=enum,options=default|host,default=default"`
+	NetworkMode string `json:"net,omitempty" norman:"type=enum,options=default|host,default=default"` // alias network, support bridge
+	IpcMode     string `json:"ipc,omitempty" norman:"type=enum,options=default|host,default=default"`
+	PidMode     string `json:"pid,omitempty" norman:"type=enum,options=default|host,default=default"`
 }
 
 type ContainerPrivilegedConfig struct {
@@ -121,12 +121,12 @@ type ExposedPort struct {
 	PortBinding
 }
 
-func (e ExposedPort) String() string {
-	s := e.PortBinding.String()
+func (e ExposedPort) MaybeString() interface{} {
+	s := e.PortBinding.MaybeString()
 	if e.Name == "" {
 		return s
 	}
-	return s + "," + e.Name
+	return convert.ToString(s) + "," + e.Name
 }
 
 type PortBinding struct {
@@ -136,7 +136,7 @@ type PortBinding struct {
 	TargetPort int64  `json:"targetPort,omitempty"`
 }
 
-func (p PortBinding) String() string {
+func (p PortBinding) MaybeString() interface{} {
 	b := bytes.Buffer{}
 	if p.Port != 0 && p.TargetPort != 0 {
 		if p.IP != "" {
@@ -186,6 +186,7 @@ type ContainerConfig struct {
 
 	Devices []DeviceMapping `json:"devices,omitempty"` // support []string and map[string]string
 	Configs []ConfigMapping `json:"configs,omitempty"`
+	Secrets []SecretMapping `json:"secrets,omitempty"`
 }
 
 type SidekickConfig struct {
@@ -217,7 +218,7 @@ type DeviceMapping struct {
 	Permissions string `json:"permissions,omitempty"`
 }
 
-func (d DeviceMapping) String() string {
+func (d DeviceMapping) MaybeString() interface{} {
 	result := d.OnHost
 	if len(d.InContainer) > 0 {
 		if len(result) > 0 {

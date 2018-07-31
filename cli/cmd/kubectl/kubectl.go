@@ -11,7 +11,8 @@ import (
 func NewKubectlCommand() cli.Command {
 	return cli.Command{
 		Name:            "kubectl",
-		Usage:           "kubectl backdoor",
+		Usage:           "Run kubectl to troubelshoot kubernetes backend",
+		Category:        "DEBUGGING",
 		Hidden:          true,
 		SkipFlagParsing: true,
 		SkipArgReorder:  true,

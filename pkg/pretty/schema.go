@@ -21,6 +21,11 @@ var (
 		Init(services).
 		Init(config).
 		Init(volume).
+		Init(route).
+		Init(kubernetes).
+		AddMapperForType(&Version, Stack{},
+			pm.RouteSet{Field: "routes"},
+		).
 		MustImport(&Version, Stack{})
 )
 
@@ -47,9 +52,11 @@ type TemplateMeta struct {
 }
 
 type Stack struct {
-	Meta      TemplateMeta              `json:"meta,omitempty"`
-	Services  map[string]client.Service `json:"services,omitempty"`
-	Configs   map[string]client.Config  `json:"configs,omitempty"`
-	Volumes   map[string]client.Volume  `json:"volumes,omitempty"`
-	Questions []v3.Question             `json:"questions,omitempty"`
+	Meta       TemplateMeta               `json:"meta,omitempty"`
+	Services   map[string]client.Service  `json:"services,omitempty"`
+	Configs    map[string]client.Config   `json:"configs,omitempty"`
+	Volumes    map[string]client.Volume   `json:"volumes,omitempty"`
+	Routes     map[string]client.RouteSet `json:"routes,omitempty"`
+	Questions  []v3.Question              `json:"questions,omitempty"`
+	Kubernetes client.Kubernetes          `json:"kubernetes,omitempty"`
 }

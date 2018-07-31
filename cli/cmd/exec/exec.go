@@ -34,7 +34,7 @@ func (e *Exec) Run(app *cli.Context) error {
 		return fmt.Errorf("at least two arguments are required CONTAINER CMD")
 	}
 
-	cd, err := ps.ListFirstPod(c, false, e.C_Container, args[0])
+	cd, err := ps.ListFirstPod(c, true, e.C_Container, args[0])
 	if err != nil {
 		return err
 	}
