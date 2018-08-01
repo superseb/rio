@@ -98,7 +98,8 @@ func (g *GatewayController) refresh() error {
 		newPorts, _ = addPorts(newPorts, getPorts(vs)...)
 	}
 
-	if set.Changed(newPorts, existingPorts) {
+	toCreate, toDelete, _ := set.Diff(newPorts, existingPorts)
+	if len(toCreate) > 0 || len(toDelete) > 0 {
 		err = g.createGateway(newPorts)
 	}
 
