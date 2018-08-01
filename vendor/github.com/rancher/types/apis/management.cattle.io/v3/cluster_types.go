@@ -24,8 +24,10 @@ const (
 	ClusterConditionNoDiskPressure condition.Cond = "NoDiskPressure"
 	// ClusterConditionNoMemoryPressure true when all cluster nodes have sufficient memory
 	ClusterConditionNoMemoryPressure condition.Cond = "NoMemoryPressure"
-	// ClusterConditionconditionDefautlProjectCreated true when default project has been created
-	ClusterConditionconditionDefautlProjectCreated condition.Cond = "DefaultProjectCreated"
+	// ClusterConditionconditionDefaultProjectCreated true when default project has been created
+	ClusterConditionconditionDefaultProjectCreated condition.Cond = "DefaultProjectCreated"
+	// ClusterConditionconditionSystemProjectCreated true when system project has been created
+	ClusterConditionconditionSystemProjectCreated condition.Cond = "SystemProjectCreated"
 	// ClusterConditionDefaultNamespaceAssigned true when cluster's default namespace has been initially assigned
 	ClusterConditionDefaultNamespaceAssigned condition.Cond = "DefaultNamespaceAssigned"
 	// ClusterConditionSystemNamespacesAssigned true when cluster's system namespaces has been initially assigned to
@@ -67,6 +69,7 @@ type ClusterSpec struct {
 	AmazonElasticContainerServiceConfig  *AmazonElasticContainerServiceConfig `json:"amazonElasticContainerServiceConfig,omitempty"`
 	DefaultPodSecurityPolicyTemplateName string                               `json:"defaultPodSecurityPolicyTemplateName,omitempty" norman:"type=reference[podSecurityPolicyTemplate]"`
 	DefaultClusterRoleForProjectMembers  string                               `json:"defaultClusterRoleForProjectMembers,omitempty" norman:"type=reference[roleTemplate]"`
+	DockerRootDir                        string                               `json:"dockerRootDir,omitempty" norman:"default=/var/lib/docker"`
 }
 
 type ImportedConfig struct {
@@ -158,7 +161,11 @@ type GoogleKubernetesEngineConfig struct {
 	// Sub Network
 	SubNetwork string `json:"subNetwork,omitempty"`
 	// Configuration for LegacyAbac
-	EnableLegacyAbac bool `json:"enableLegacyAbac,omitempty"`
+	EnableLegacyAbac        bool   `json:"enableLegacyAbac,omitempty"`
+	NoStackdriverLogging    bool   `json:"noStackdriverLogging"`
+	NoStackdriverMonitoring bool   `json:"noStackdriverMonitoring"`
+	NoNetworkPolicy         bool   `json:"noNetworkPolicy"`
+	MaintenanceWindow       string `json:"maintenanceWindow"`
 }
 
 type AzureKubernetesServiceConfig struct {
@@ -208,10 +215,14 @@ type AmazonElasticContainerServiceConfig struct {
 	AccessKey string `json:"accessKey" norman:"required"`
 	SecretKey string `json:"secretKey" norman:"required,type=password"`
 
-	Region       string `json:"region"`
-	InstanceType string `json:"instanceType"`
-	MinimumNodes int    `json:"minimumNodes"`
-	MaximumNodes int    `json:"maximumNodes"`
+	Region         string   `json:"region"`
+	InstanceType   string   `json:"instanceType"`
+	MinimumNodes   int      `json:"minimumNodes"`
+	MaximumNodes   int      `json:"maximumNodes"`
+	VirtualNetwork string   `json:"virtualNetwork,omitempty"`
+	Subnets        []string `json:"subnets,omitempty"`
+	SecurityGroups []string `json:"securityGroups,omitempty"`
+	ServiceRole    string   `json:"serviceRole,omitempty"`
 }
 
 type ClusterEvent struct {

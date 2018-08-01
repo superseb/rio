@@ -21,7 +21,6 @@ import (
 var (
 	copyProcesses = []string{
 		services.KubeAPIContainerName,
-		services.SchedulerContainerName,
 		services.KubeControllerContainerName,
 		services.EtcdContainerName,
 	}
@@ -101,6 +100,10 @@ func runK8s(ctx context.Context, kubeConfig string, args []string) {
 			logrus.Errorf("Failed to build client: %v", err)
 			return
 		}
+	}
+
+	if args[0] == "kube-controller-manager" {
+		args = append(args, "--controllers", "*", "--controllers", "-resourcequota", "--controllers", "-service")
 	}
 
 	hk := hyperkube.HyperKube{

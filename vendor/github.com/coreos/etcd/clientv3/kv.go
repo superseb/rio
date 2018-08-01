@@ -15,6 +15,7 @@
 package clientv3
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/coreos/etcd/clientv3/driver"
@@ -128,15 +129,15 @@ func (k *kv) opGet(ctx context.Context, op Op) (*GetResponse, error) {
 		startKey = ""
 	} else {
 		rangeKey = op.boundingKey
-		startKey = op.key
+		startKey = string(bytes.SplitN([]byte(op.key), []byte{'\x00'}, -1)[0])
 	}
 
-	kvs, err := k.d.List(ctx, op.rev, op.limit, rangeKey, startKey)
+	kvs, rev, err := k.d.List(ctx, op.rev, op.limit, rangeKey, startKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return getResponse(kvs, op.limit, op.countOnly), nil
+	return getResponse(kvs, rev, op.limit, op.countOnly), nil
 }
 
 func getPutResponse(oldValue *driver.KeyValue, value *driver.KeyValue) *PutResponse {
@@ -164,7 +165,7 @@ func toKeyValue(v *driver.KeyValue) *mvccpb.KeyValue {
 }
 
 func getDeleteResponse(values []*driver.KeyValue) *DeleteResponse {
-	gr := getResponse(values, 0, false)
+	gr := getResponse(values, 0, 0, false)
 	return &DeleteResponse{
 		Header: &pb.ResponseHeader{
 			Revision: gr.Header.Revision,
@@ -173,9 +174,11 @@ func getDeleteResponse(values []*driver.KeyValue) *DeleteResponse {
 	}
 }
 
-func getResponse(values []*driver.KeyValue, limit int64, count bool) *GetResponse {
+func getResponse(values []*driver.KeyValue, revision, limit int64, count bool) *GetResponse {
 	gr := &GetResponse{
-		Header: &pb.ResponseHeader{},
+		Header: &pb.ResponseHeader{
+			Revision: revision,
+		},
 	}
 
 	for _, v := range values {

@@ -35,7 +35,8 @@ var (
 		Init(rkeTypes).
 		Init(alertTypes).
 		Init(pipelineTypes).
-		Init(composeType)
+		Init(composeType).
+		Init(resourceQuotaTemplateTypes)
 
 	TokenSchemas = factory.Schemas(&Version).
 			Init(tokens)
@@ -188,7 +189,10 @@ func authzTypes(schemas *types.Schemas) *types.Schemas {
 				"exportYaml": {},
 			}
 		}).
-		MustImport(&Version, v3.GlobalRole{}).
+		MustImportAndCustomize(&Version, v3.GlobalRole{}, func(schema *types.Schema) {
+			schema.CollectionMethods = []string{http.MethodGet}
+			schema.ResourceMethods = []string{http.MethodGet, http.MethodPut}
+		}).
 		MustImport(&Version, v3.GlobalRoleBinding{}).
 		MustImport(&Version, v3.RoleTemplate{}).
 		MustImport(&Version, v3.PodSecurityPolicyTemplate{}).
@@ -220,6 +224,7 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 			&m.Drop{Field: "desiredNodeLabels"},
 			&m.Drop{Field: "desiredNodeAnnotations"},
 			&m.Drop{Field: "desiredNodeUnschedulable"},
+			&m.Drop{Field: "nodeDrainInput"},
 			&m.AnnotationField{Field: "publicEndpoints", List: true},
 			m.Copy{From: "namespaceId", To: "clusterName"},
 			m.DisplayName{}).
@@ -227,6 +232,7 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 		AddMapperForType(&Version, v3.NodeTemplate{}, m.DisplayName{}).
 		MustImport(&Version, v3.PublicEndpoint{}).
 		MustImport(&Version, v3.NodePool{}).
+		MustImport(&Version, v3.NodeDrainInput{}).
 		MustImportAndCustomize(&Version, v3.Node{}, func(schema *types.Schema) {
 			labelField := schema.ResourceFields["labels"]
 			labelField.Create = true
@@ -241,6 +247,9 @@ func nodeTypes(schemas *types.Schemas) *types.Schemas {
 			schema.ResourceFields["clusterId"] = clusterField
 			schema.ResourceActions["cordon"] = types.Action{}
 			schema.ResourceActions["uncordon"] = types.Action{}
+			schema.ResourceActions["drain"] = types.Action{
+				Input: "nodeDrainInput",
+			}
 		}, struct {
 			PublicEndpoints string `json:"publicEndpoints" norman:"type=array[publicEndpoint],nocreate,noupdate"`
 		}{}).
@@ -268,7 +277,8 @@ func tokens(schemas *types.Schemas) *types.Schemas {
 
 func authnTypes(schemas *types.Schemas) *types.Schemas {
 	return schemas.
-		AddMapperForType(&Version, v3.User{}, m.DisplayName{}).
+		AddMapperForType(&Version, v3.User{}, m.DisplayName{},
+			&m.Embed{Field: "status"}).
 		AddMapperForType(&Version, v3.Group{}, m.DisplayName{}).
 		MustImport(&Version, v3.Group{}).
 		MustImport(&Version, v3.GroupMember{}).
@@ -403,7 +413,35 @@ func authnTypes(schemas *types.Schemas) *types.Schemas {
 				return f
 			})
 		}).
-		MustImport(&Version, v3.FreeIpaTestAndApplyInput{})
+		MustImport(&Version, v3.FreeIpaTestAndApplyInput{}).
+		// Saml Config
+		// Ping-Saml Config
+		MustImportAndCustomize(&Version, v3.PingConfig{}, func(schema *types.Schema) {
+			schema.BaseType = "authConfig"
+			schema.ResourceActions = map[string]types.Action{
+				"disable": {},
+				"testAndEnable": {
+					Input:  "samlConfigTestInput",
+					Output: "samlConfigTestOutput",
+				},
+			}
+			schema.CollectionMethods = []string{}
+			schema.ResourceMethods = []string{http.MethodGet, http.MethodPut}
+		}).
+		MustImportAndCustomize(&Version, v3.ADFSConfig{}, func(schema *types.Schema) {
+			schema.BaseType = "authConfig"
+			schema.ResourceActions = map[string]types.Action{
+				"disable": {},
+				"testAndEnable": {
+					Input:  "samlConfigTestInput",
+					Output: "samlConfigTestOutput",
+				},
+			}
+			schema.CollectionMethods = []string{}
+			schema.ResourceMethods = []string{http.MethodGet, http.MethodPut}
+		}).
+		MustImport(&Version, v3.SamlConfigTestInput{}).
+		MustImport(&Version, v3.SamlConfigTestOutput{})
 }
 
 func userTypes(schema *types.Schemas) *types.Schemas {
@@ -564,4 +602,11 @@ func pipelineTypes(schema *types.Schemas) *types.Schemas {
 
 func composeType(schemas *types.Schemas) *types.Schemas {
 	return schemas.MustImport(&Version, v3.ComposeConfig{})
+}
+
+func resourceQuotaTemplateTypes(schemas *types.Schemas) *types.Schemas {
+	return schemas.
+		MustImportAndCustomize(&Version, v3.ResourceQuotaTemplate{}, func(schema *types.Schema) {
+			schema.ResourceMethods = []string{http.MethodGet, http.MethodDelete}
+		})
 }

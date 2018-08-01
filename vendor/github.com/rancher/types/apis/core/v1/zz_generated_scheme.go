@@ -45,6 +45,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ConfigMapList{},
 		&ServiceAccountList{},
 		&ReplicationControllerList{},
+		&ResourceQuotaList{},
 	)
 	return nil
 }

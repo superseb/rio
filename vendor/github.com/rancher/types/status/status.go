@@ -39,6 +39,7 @@ var transitioningMap = map[string]string{
 	"DefaultNetworkPolicyCreated": "configuring",
 	"DefaultProjectCreated":       "configuring",
 	"DockerProvisioned":           "provisioning",
+	"Drained":                     "draining",
 	"Downloaded":                  "downloading",
 	"etcd":                        "provisioning",
 	"Inactive":                    "deactivating",
@@ -99,6 +100,9 @@ func concat(str, next string) string {
 		return next
 	}
 	if next == "" {
+		return str
+	}
+	if strings.EqualFold(str, next) {
 		return str
 	}
 	return str + "; " + next
