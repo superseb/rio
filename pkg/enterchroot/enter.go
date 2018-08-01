@@ -140,7 +140,7 @@ func inFile() (string, uint64, error) {
 			if b == test[found] {
 				found++
 				if found == testLength {
-					return os.Args[0], offset + 1, nil
+					return reexec.Self(), offset + 1, nil
 				}
 			} else {
 				found = 0

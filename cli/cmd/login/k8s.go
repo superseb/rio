@@ -56,7 +56,7 @@ func (l *Login) k8s(tempFile string) (bool, error) {
 				return
 			}
 			if i == 1 {
-				logrus.Infof("Waiting for to connect to Rio")
+				logrus.Infof("Waiting to connect to Rio")
 			}
 			time.Sleep(2 * time.Second)
 		}

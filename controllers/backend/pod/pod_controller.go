@@ -186,6 +186,9 @@ func isGateway(pod *v1.Pod) bool {
 	if pod == nil {
 		return true
 	}
+	if pod.Spec.NodeName == "" {
+		return false
+	}
 	return pod.Labels["gateway"] == "external"
 }
 
@@ -216,8 +219,12 @@ func (p *PodController) mod(ips map[string]string, key string, pod *v1.Pod) erro
 	return nil
 }
 
+func IsD4x(node *v1.Node) bool {
+	return strings.Contains(strings.ToLower(node.Status.NodeInfo.OSImage), "docker for")
+}
+
 func getAddr(node *v1.Node, types ...v1.NodeAddressType) string {
-	if strings.Contains(strings.ToLower(node.Status.NodeInfo.OperatingSystem), "docker for") {
+	if IsD4x(node) {
 		return "127.0.0.1"
 	}
 	for _, addrType := range types {
